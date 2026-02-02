@@ -4,9 +4,10 @@ export const TAB_GROUPS = [
   { label: "Chat", tabs: ["chat"] },
   {
     label: "Control",
-    tabs: ["overview", "channels", "instances", "sessions", "cron"],
+    tabs: ["overview", "channels", "instances", "sessions", "cron", "emails", "tasks", "calendar"],
   },
   { label: "Agent", tabs: ["skills", "nodes"] },
+  { label: "Family", tabs: ["family"] },
   { label: "Settings", tabs: ["config", "debug", "logs"] },
 ] as const;
 
@@ -16,8 +17,12 @@ export type Tab =
   | "instances"
   | "sessions"
   | "cron"
+  | "emails"
+  | "tasks"
+  | "calendar"
   | "skills"
   | "nodes"
+  | "family"
   | "chat"
   | "config"
   | "debug"
@@ -29,8 +34,12 @@ const TAB_PATHS: Record<Tab, string> = {
   instances: "/instances",
   sessions: "/sessions",
   cron: "/cron",
+  emails: "/emails",
+  tasks: "/tasks",
+  calendar: "/calendar",
   skills: "/skills",
   nodes: "/nodes",
+  family: "/family",
   chat: "/chat",
   config: "/config",
   debug: "/debug",
@@ -132,10 +141,18 @@ export function iconForTab(tab: Tab): IconName {
       return "fileText";
     case "cron":
       return "loader";
+    case "emails":
+      return "mail";
+    case "tasks":
+      return "checkSquare";
+    case "calendar":
+      return "calendarDays";
     case "skills":
       return "zap";
     case "nodes":
       return "monitor";
+    case "family":
+      return "users";
     case "config":
       return "settings";
     case "debug":
@@ -159,10 +176,18 @@ export function titleForTab(tab: Tab) {
       return "Sessions";
     case "cron":
       return "Cron Jobs";
+    case "emails":
+      return "Emails";
+    case "tasks":
+      return "Tasks";
+    case "calendar":
+      return "Calendar";
     case "skills":
       return "Skills";
     case "nodes":
       return "Nodes";
+    case "family":
+      return "Family";
     case "chat":
       return "Chat";
     case "config":
@@ -188,10 +213,18 @@ export function subtitleForTab(tab: Tab) {
       return "Inspect active sessions and adjust per-session defaults.";
     case "cron":
       return "Schedule wakeups and recurring agent runs.";
+    case "emails":
+      return "AI-powered email intelligence and management.";
+    case "tasks":
+      return "Organize and track your tasks with Kanban and list views.";
+    case "calendar":
+      return "View and manage your schedule with conflict detection.";
     case "skills":
       return "Manage skill availability and API key injection.";
     case "nodes":
       return "Paired devices, capabilities, and command exposure.";
+    case "family":
+      return "Family context management with privacy-first controls.";
     case "chat":
       return "Direct gateway chat session for quick interventions.";
     case "config":

@@ -22,6 +22,13 @@ import {
 } from "./controllers/cron";
 import { loadDebug, callDebugMethod } from "./controllers/debug";
 import {
+  loadEmails,
+  searchEmails,
+  createTaskFromEmail,
+  draftReply,
+  archiveEmail,
+} from "./controllers/emails";
+import {
   approveDevicePairing,
   loadDevices,
   rejectDevicePairing,
@@ -52,6 +59,7 @@ import { renderChat } from "./views/chat";
 import { renderConfig } from "./views/config";
 import { renderCron } from "./views/cron";
 import { renderDebug } from "./views/debug";
+import { renderEmails } from "./views/emails";
 import { renderExecApprovalPrompt } from "./views/exec-approval";
 import { renderGatewayUrlConfirmation } from "./views/gateway-url-confirmation";
 import { renderInstances } from "./views/instances";
@@ -313,6 +321,36 @@ export function renderApp(state: AppViewState) {
                 onRun: (job) => runCronJob(state, job),
                 onRemove: (job) => removeCronJob(state, job),
                 onLoadRuns: (jobId) => loadCronRuns(state, jobId),
+              })
+            : nothing
+        }
+
+        ${
+          state.tab === "emails"
+            ? renderEmails({
+                loading: state.emailsLoading,
+                emails: state.emails as any[],
+                selectedEmail: state.selectedEmail as any,
+                error: state.emailError,
+                searchQuery: state.emailSearchQuery,
+                filters: state.emailFilters as any,
+                onRefresh: () => loadEmails(state as any),
+                onSearch: (query) => {
+                  state.emailSearchQuery = query;
+                  if (query.trim()) {
+                    searchEmails(state as any, query);
+                  } else {
+                    loadEmails(state as any);
+                  }
+                },
+                onFilterChange: (filters) => {
+                  state.emailFilters = filters;
+                  loadEmails(state as any);
+                },
+                onSelectEmail: (email) => (state.selectedEmail = email),
+                onCreateTask: (email) => createTaskFromEmail(state as any, email),
+                onDraftReply: (email) => draftReply(state as any, email),
+                onArchive: (email) => archiveEmail(state as any, email),
               })
             : nothing
         }

@@ -119,6 +119,12 @@ export type AppViewState = {
   cronRunsJobId: string | null;
   cronRuns: CronRunLogEntry[];
   cronBusy: boolean;
+  emailsLoading: boolean;
+  emails: unknown[];
+  selectedEmail: unknown;
+  emailError: string | null;
+  emailSearchQuery: string;
+  emailFilters: Record<string, string | undefined>;
   skillsLoading: boolean;
   skillsReport: SkillStatusReport | null;
   skillsError: string | null;

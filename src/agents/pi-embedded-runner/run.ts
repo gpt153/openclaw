@@ -28,6 +28,7 @@ import {
 } from "../model-auth.js";
 import { normalizeProviderId } from "../model-selection.js";
 import { ensureOpenClawModelsJson } from "../models-config.js";
+import { runOdinAgent } from "../odin-bridge.js";
 import {
   classifyFailoverReason,
   formatAssistantErrorText,
@@ -71,6 +72,70 @@ function scrubAnthropicRefusalMagic(prompt: string): string {
 export async function runEmbeddedPiAgent(
   params: RunEmbeddedPiAgentParams,
 ): Promise<EmbeddedPiRunResult> {
+  // Check if we should route to Odin orchestrator
+  const isWebChannel = params.messageChannel === "web";
+  const useOdinBackend = isWebChannel && params.config?.agents?.defaults?.backend === "odin";
+
+  if (useOdinBackend) {
+    // Route to Odin orchestrator instead of Pi agent
+    // Map thinking levels to Odin's expected values
+    const mapThinkLevel = (level?: string): "high" | "low" | "medium" | "off" => {
+      if (!level || level === "minimal") return "low";
+      if (level === "xhigh") return "high";
+      if (level === "high" || level === "medium" || level === "off") return level;
+      return "low";
+    };
+
+    // Convert ImageContent[] to Buffer[] if images present
+    const imageBuffers = params.images?.map((img) => {
+      if (Buffer.isBuffer(img)) return img;
+      // ImageContent has data property that's a base64 string
+      return Buffer.from(img.data, "base64");
+    });
+
+    // Call Odin orchestrator and collect responses
+    const responses = [];
+    for await (const response of runOdinAgent({
+      user_id: params.sessionKey?.trim() || params.sessionId,
+      platform: "web",
+      session_id: params.sessionId,
+      message: params.prompt,
+      images: imageBuffers,
+      skill_context: params.skillsSnapshot,
+      thinking_level: mapThinkLevel(params.thinkLevel),
+      model_preference: "auto",
+    })) {
+      responses.push(response);
+    }
+
+    // Convert OdinAgentResponse[] to EmbeddedPiRunResult format
+    const lastResponse = responses[responses.length - 1];
+    const allText = responses
+      .flatMap((r) => r.messages)
+      .map((m: unknown) => (m as { text?: string }).text)
+      .filter(Boolean)
+      .join("\n\n");
+
+    return {
+      payloads: allText ? [{ text: allText }] : [],
+      meta: {
+        durationMs: 0, // Will be calculated by caller
+        agentMeta: {
+          sessionId: params.sessionId,
+          provider: "odin",
+          model: lastResponse?.model_used || "unknown",
+          usage: {
+            input: lastResponse?.usage?.input_tokens || 0,
+            output: lastResponse?.usage?.output_tokens || 0,
+            total:
+              (lastResponse?.usage?.input_tokens || 0) + (lastResponse?.usage?.output_tokens || 0),
+          },
+        },
+      },
+    };
+  }
+
+  // Existing Pi agent logic continues unchanged
   const sessionLane = resolveSessionLane(params.sessionKey?.trim() || params.sessionId);
   const globalLane = resolveGlobalLane(params.lane);
   const enqueueGlobal =

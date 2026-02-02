@@ -213,6 +213,13 @@ export class OpenClawApp extends LitElement {
   @state() cronRuns: CronRunLogEntry[] = [];
   @state() cronBusy = false;
 
+  @state() emailsLoading = false;
+  @state() emails: Array<unknown> = [];
+  @state() selectedEmail: unknown = null;
+  @state() emailError: string | null = null;
+  @state() emailSearchQuery = "";
+  @state() emailFilters: Record<string, string | undefined> = { limit: "50" };
+
   @state() skillsLoading = false;
   @state() skillsReport: SkillStatusReport | null = null;
   @state() skillsError: string | null = null;
