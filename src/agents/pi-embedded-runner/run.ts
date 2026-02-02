@@ -74,7 +74,10 @@ export async function runEmbeddedPiAgent(
 ): Promise<EmbeddedPiRunResult> {
   // Check if we should route to Odin orchestrator
   const isWebChannel = params.messageChannel === "web";
-  const useOdinBackend = isWebChannel && params.config?.agents?.defaults?.backend === "odin";
+  const useOdinBackend =
+    isWebChannel &&
+    (params.config?.agents?.defaults?.backend === "odin" ||
+      process.env.USE_ODIN_BACKEND === "true");
 
   if (useOdinBackend) {
     // Route to Odin orchestrator instead of Pi agent
