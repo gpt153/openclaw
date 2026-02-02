@@ -46,6 +46,10 @@
     "trustedProxies": ["127.0.0.1", "::1"],
     "auth": {
       "token": "dev-token-123"
+    },
+    "controlUi": {
+      "allowInsecureAuth": true,
+      "dangerouslyDisableDeviceAuth": true
     }
   }
 }
@@ -101,8 +105,8 @@ cd /home/samuel/sv/odin-s/openclaw-fork
 - **Family**: https://odin.153.se/family
 
 ### WebChat
-- **URL**: https://odin.153.se/?token=dev-token-123
-- Note: Add `?token=dev-token-123` to URL for WebSocket auth
+- **URL**: https://odin.153.se/
+- Note: Token parameter (`?token=dev-token-123`) is optional with current configuration (authentication bypassed for Control UI on local connections)
 
 ## 🔧 Troubleshooting
 
@@ -119,9 +123,10 @@ ss -ltnp | grep 18789
 ```
 
 ### WebSocket Connection Issues
-- Ensure token is in URL: `?token=dev-token-123`
 - Check Cloudflare tunnel: `sudo systemctl status cloudflared`
 - Verify trusted proxies configured in `~/.openclaw/openclaw.json`
+- Verify Control UI auth bypass: `gateway.controlUi.allowInsecureAuth` and `gateway.controlUi.dangerouslyDisableDeviceAuth` should be `true`
+- For production: Use proper device pairing instead of auth bypass
 
 ### Odin Backend Issues
 ```bash
@@ -233,7 +238,7 @@ sudo systemctl restart cloudflared
 
 ## 🐛 Known Issues
 
-- WebSocket requires `?token=dev-token-123` in URL
+- Authentication bypassed for Control UI using `allowInsecureAuth` and `dangerouslyDisableDeviceAuth` (suitable for local development only)
 - Gateway auth cannot be fully disabled (mode must be "token" or "password")
 - Odin backend integration is passive (requires explicit configuration)
 
