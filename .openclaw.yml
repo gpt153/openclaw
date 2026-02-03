@@ -1,0 +1,21 @@
+# OpenClaw Gateway Configuration
+# Purpose: Disable device authentication for web/browser access
+
+gateway:
+  controlUi:
+    # DANGEROUS: Disable device identity checks for Control UI
+    # This allows browser access without Ed25519 device pairing
+    dangerouslyDisableDeviceAuth: true
+
+    # Allow token-only auth over HTTP (for development)
+    allowInsecureAuth: true
+
+  # Set empty auth to allow unauthenticated access (VERY DANGEROUS)
+  auth:
+    mode: token
+    token: "dev-bypass-auth"
+
+  # Trust Cloudflare proxy headers
+  trustedProxies:
+    - "127.0.0.1"
+    - "::1"
