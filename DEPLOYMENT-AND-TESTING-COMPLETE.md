@@ -13,7 +13,7 @@
 **Location**: `/home/samuel/sv/odin-s/openclaw-fork/`
 
 **Process Details**:
-- **PID**: 2318554
+- **PID**: 2378105
 - **Status**: ✅ Running
 - **Port**: 18789 (listening on IPv4 + IPv6)
 - **Node Version**: v22.22.0
@@ -31,6 +31,7 @@ Control panel: Loaded successfully
 - Odin Orchestrator: http://localhost:5105
 - Odin Backend: Enabled
 - Channels: Skipped (web-only mode)
+- Device Auth: Disabled for Control UI (allows web access without device pairing)
 
 **Services**:
 - Canvas service: ✅ Mounted
