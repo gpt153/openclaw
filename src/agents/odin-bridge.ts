@@ -51,6 +51,31 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_RETRIES = 3;
 const DEFAULT_RETRY_DELAY_MS = 1000;
 
+/**
+ * Generate a consistent session ID for Odin from gateway parameters.
+ * Ensures same user on same platform gets same session ID across page refreshes.
+ *
+ * @param userId - User identifier (e.g., "admin")
+ * @param platform - Platform name (e.g., "web")
+ * @param sessionHint - Optional session hint from gateway
+ * @returns Consistent session ID string
+ */
+export function generateOdinSessionId(
+  userId: string,
+  platform: string,
+  sessionHint?: string,
+): string {
+  // If we have a specific session hint, use it with prefix
+  if (sessionHint && !sessionHint.startsWith("probe-")) {
+    // Extract stable part of session ID (e.g., "web_admin_xxx" -> "web_admin")
+    const stablePart = sessionHint.split("_").slice(0, 2).join("_");
+    return `odin_${platform}_${userId}_${stablePart}`;
+  }
+
+  // Default: use user + platform for persistent session
+  return `odin_${platform}_${userId}`;
+}
+
 export class OdinBridgeError extends Error {
   constructor(
     message: string,
@@ -87,6 +112,95 @@ export class OdinValidationError extends OdinBridgeError {
   constructor(message: string) {
     super(message, 400, false);
     this.name = "OdinValidationError";
+  }
+}
+
+/**
+ * Map OdinBridgeError to user-friendly message for WebUI display.
+ *
+ * @param error - The caught error
+ * @returns User-friendly error message
+ */
+export function getUserFriendlyErrorMessage(error: unknown): string {
+  if (error instanceof OdinConnectionError) {
+    return "The AI service is temporarily unavailable. Please try again in a moment.";
+  }
+
+  if (error instanceof OdinTimeoutError) {
+    return "The request is taking longer than expected. Please try again.";
+  }
+
+  if (error instanceof OdinServerError) {
+    if (error.statusCode === 429) {
+      return "Too many requests. Please wait a few seconds before trying again.";
+    }
+    if (error.message.includes("too many clients")) {
+      return "The AI service is currently busy. Please try again in a moment.";
+    }
+    return "The AI service encountered an error. Please try again.";
+  }
+
+  if (error instanceof OdinValidationError) {
+    // Parse validation errors for user-friendly messages
+    const msg = error.message.toLowerCase();
+    if (msg.includes("message") && msg.includes("required")) {
+      return "Please enter a message to send.";
+    }
+    if (msg.includes("user_id") || msg.includes("session")) {
+      return "Session error. Please refresh the page and try again.";
+    }
+    return "Invalid request. Please check your input and try again.";
+  }
+
+  // Generic fallback
+  if (error instanceof Error) {
+    // Log the actual error for debugging
+    console.error("[odin-bridge] Unhandled error:", error.message);
+  }
+
+  return "Something went wrong. Please try again.";
+}
+
+/**
+ * Determine if an error is retryable automatically.
+ *
+ * @param error - The caught error
+ * @returns Whether the error should trigger automatic retry
+ */
+export function shouldAutoRetry(error: unknown): boolean {
+  if (error instanceof OdinConnectionError) return true;
+  if (error instanceof OdinTimeoutError) return true;
+  if (error instanceof OdinServerError) {
+    // Retry 5xx errors except rate limiting
+    return error.statusCode !== undefined && error.statusCode >= 500 && error.statusCode !== 429;
+  }
+  return false;
+}
+
+/**
+ * Quick health check for Odin orchestrator.
+ *
+ * @param baseUrl - Orchestrator base URL
+ * @param timeoutMs - Health check timeout
+ * @returns Whether orchestrator is healthy
+ */
+export async function checkOdinHealth(
+  baseUrl = DEFAULT_BASE_URL,
+  timeoutMs = 3000,
+): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    const response = await fetch(`${baseUrl}/health`, {
+      method: "GET",
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+    return response.ok;
+  } catch {
+    return false;
   }
 }
 

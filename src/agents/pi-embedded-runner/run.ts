@@ -28,7 +28,12 @@ import {
 } from "../model-auth.js";
 import { normalizeProviderId } from "../model-selection.js";
 import { ensureOpenClawModelsJson } from "../models-config.js";
-import { runOdinAgent } from "../odin-bridge.js";
+import {
+  runOdinAgent,
+  generateOdinSessionId,
+  getUserFriendlyErrorMessage,
+  shouldAutoRetry,
+} from "../odin-bridge.js";
 import {
   classifyFailoverReason,
   formatAssistantErrorText,
@@ -96,43 +101,86 @@ export async function runEmbeddedPiAgent(
       return Buffer.from(img.data, "base64");
     });
 
-    // Call Odin orchestrator and collect responses
-    const responses = [];
-    for await (const response of runOdinAgent({
-      user_id: params.sessionKey?.trim() || params.sessionId,
-      platform: "web",
-      session_id: params.sessionId,
-      message: params.prompt,
-      images: imageBuffers,
-      skill_context: params.skillsSnapshot,
-      thinking_level: mapThinkLevel(params.thinkLevel),
-      model_preference: "auto",
-    })) {
-      responses.push(response);
+    // Generate consistent session ID for Odin
+    const odinUserId = params.sessionKey?.trim() || "anonymous";
+    const odinSessionId = generateOdinSessionId(odinUserId, "web", params.sessionId);
+
+    // Try calling Odin with automatic retries
+    let lastError: unknown = null;
+    const maxRetries = 2;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        // Call Odin orchestrator and collect responses
+        const responses = [];
+        for await (const response of runOdinAgent({
+          user_id: odinUserId,
+          platform: "web",
+          session_id: odinSessionId,
+          message: params.prompt,
+          images: imageBuffers,
+          skill_context: params.skillsSnapshot,
+          thinking_level: mapThinkLevel(params.thinkLevel),
+          model_preference: "auto",
+        })) {
+          responses.push(response);
+        }
+
+        // Convert OdinAgentResponse[] to EmbeddedPiRunResult format
+        const lastResponse = responses[responses.length - 1];
+        const allText = responses
+          .flatMap((r) => r.messages)
+          .map((m: unknown) => (m as { text?: string }).text)
+          .filter(Boolean)
+          .join("\n\n");
+
+        return {
+          payloads: allText ? [{ text: allText }] : [],
+          meta: {
+            durationMs: 0, // Will be calculated by caller
+            agentMeta: {
+              sessionId: odinSessionId,
+              provider: "odin",
+              model: lastResponse?.model_used || "unknown",
+              usage: {
+                input: lastResponse?.usage?.input_tokens || 0,
+                output: lastResponse?.usage?.output_tokens || 0,
+                total:
+                  (lastResponse?.usage?.input_tokens || 0) +
+                  (lastResponse?.usage?.output_tokens || 0),
+              },
+            },
+          },
+        };
+      } catch (error) {
+        lastError = error;
+
+        // Check if we should retry
+        if (attempt < maxRetries && shouldAutoRetry(error)) {
+          // Wait before retry (exponential backoff)
+          await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+          continue;
+        }
+
+        // No more retries, break and return error
+        break;
+      }
     }
 
-    // Convert OdinAgentResponse[] to EmbeddedPiRunResult format
-    const lastResponse = responses[responses.length - 1];
-    const allText = responses
-      .flatMap((r) => r.messages)
-      .map((m: unknown) => (m as { text?: string }).text)
-      .filter(Boolean)
-      .join("\n\n");
-
+    // Return user-friendly error response
+    const userMessage = getUserFriendlyErrorMessage(lastError);
     return {
-      payloads: allText ? [{ text: allText }] : [],
+      payloads: [{ text: userMessage }],
       meta: {
-        durationMs: 0, // Will be calculated by caller
+        durationMs: 0,
         agentMeta: {
-          sessionId: params.sessionId,
+          sessionId: odinSessionId,
           provider: "odin",
-          model: lastResponse?.model_used || "unknown",
-          usage: {
-            input: lastResponse?.usage?.input_tokens || 0,
-            output: lastResponse?.usage?.output_tokens || 0,
-            total:
-              (lastResponse?.usage?.input_tokens || 0) + (lastResponse?.usage?.output_tokens || 0),
-          },
+          model: "error",
+        },
+        error: {
+          kind: "odin_error",
+          message: lastError instanceof Error ? lastError.message : String(lastError),
         },
       },
     };

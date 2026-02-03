@@ -19,3 +19,16 @@ gateway:
   trustedProxies:
     - "127.0.0.1"
     - "::1"
+
+# Agent configuration
+agents:
+  defaults:
+    # Route web channel to Odin orchestrator
+    backend: odin
+
+# Odin orchestrator settings
+odin:
+  orchestrator:
+    url: "http://localhost:5105"
+    timeout: 30000
+    maxRetries: 3
