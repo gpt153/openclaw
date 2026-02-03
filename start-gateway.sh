@@ -9,9 +9,8 @@ export OPENCLAW_SKIP_CHANNELS=1
 export ODIN_ORCHESTRATOR_URL=http://localhost:5105
 export USE_ODIN_BACKEND=true
 
-# Disable device authentication for web access
-export OPENCLAW_GATEWAY_CONTROL_UI_DANGEROUSLY_DISABLE_DEVICE_AUTH=true
-export OPENCLAW_GATEWAY_CONTROL_UI_ALLOW_INSECURE_AUTH=true
-
 cd /home/samuel/sv/odin-s/openclaw-fork
+
+# Use config file (.openclaw.yml) for gateway settings
+# Config file contains: gateway.controlUi.dangerouslyDisableDeviceAuth: true
 ./openclaw.mjs gateway run --bind loopback
