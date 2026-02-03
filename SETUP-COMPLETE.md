@@ -57,8 +57,8 @@
 
 ### Environment Variables (`.env`)
 ```bash
-# Anthropic API Key
-ANTHROPIC_API_KEY=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
+# Anthropic API Key (store in vault, load from .env)
+ANTHROPIC_API_KEY=sk-ant-api03-YOUR-KEY-HERE
 
 # Skip multi-channel (web-only mode)
 OPENCLAW_SKIP_CHANNELS=1
