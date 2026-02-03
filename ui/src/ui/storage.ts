@@ -21,9 +21,13 @@ export function loadSettings(): UiSettings {
     return `${proto}://${location.host}`;
   })();
 
+  // Read token from URL parameter if present
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlToken = urlParams.get("token");
+
   const defaults: UiSettings = {
     gatewayUrl: defaultUrl,
-    token: "",
+    token: urlToken || "",
     sessionKey: "main",
     lastActiveSessionKey: "main",
     theme: "system",
@@ -40,12 +44,14 @@ export function loadSettings(): UiSettings {
       return defaults;
     }
     const parsed = JSON.parse(raw) as Partial<UiSettings>;
+    // URL parameter takes precedence over localStorage
+    const tokenValue = urlToken || (typeof parsed.token === "string" ? parsed.token : defaults.token);
     return {
       gatewayUrl:
         typeof parsed.gatewayUrl === "string" && parsed.gatewayUrl.trim()
           ? parsed.gatewayUrl.trim()
           : defaults.gatewayUrl,
-      token: typeof parsed.token === "string" ? parsed.token : defaults.token,
+      token: tokenValue,
       sessionKey:
         typeof parsed.sessionKey === "string" && parsed.sessionKey.trim()
           ? parsed.sessionKey.trim()
