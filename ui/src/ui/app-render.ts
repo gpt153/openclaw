@@ -29,6 +29,15 @@ import {
   archiveEmail,
 } from "./controllers/emails";
 import {
+  fetchEvents,
+  fetchConflicts,
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  getWeekBounds,
+  getDayBounds,
+} from "./controllers/calendar";
+import {
   approveDevicePairing,
   loadDevices,
   rejectDevicePairing,
@@ -60,6 +69,7 @@ import { renderConfig } from "./views/config";
 import { renderCron } from "./views/cron";
 import { renderDebug } from "./views/debug";
 import { renderEmails } from "./views/emails";
+import { renderCalendar } from "./views/calendar";
 import { renderExecApprovalPrompt } from "./views/exec-approval";
 import { renderGatewayUrlConfirmation } from "./views/gateway-url-confirmation";
 import { renderInstances } from "./views/instances";
@@ -71,6 +81,45 @@ import { renderSkills } from "./views/skills";
 
 const AVATAR_DATA_RE = /^data:/i;
 const AVATAR_HTTP_RE = /^https?:\/\//i;
+
+function getOdinApiBaseUrl(): string {
+  // When running on odin.153.se, use the public mcp endpoint
+  // Use same protocol as current page to avoid mixed content issues
+  if (window.location.hostname === "odin.153.se") {
+    const protocol = window.location.protocol; // 'http:' or 'https:'
+    return `${protocol}//mcp.odin.153.se`;
+  }
+  // Default to localhost for local development
+  return "http://localhost:5100";
+}
+
+async function loadCalendarEvents(state: AppViewState) {
+  if (state.calendarLoading) {
+    return;
+  }
+  state.calendarLoading = true;
+  state.calendarError = null;
+  try {
+    const baseUrl = getOdinApiBaseUrl();
+    const bounds = state.calendarView === "weekly"
+      ? getWeekBounds(state.calendarCurrentDate)
+      : getDayBounds(state.calendarCurrentDate);
+
+    const [events, conflicts] = await Promise.all([
+      fetchEvents(baseUrl, bounds.start, bounds.end),
+      fetchConflicts(baseUrl, bounds.start, bounds.end),
+    ]);
+
+    state.calendarEvents = events;
+    state.calendarConflicts = conflicts;
+  } catch (err) {
+    state.calendarError = String(err);
+    state.calendarEvents = [];
+    state.calendarConflicts = [];
+  } finally {
+    state.calendarLoading = false;
+  }
+}
 
 function resolveAssistantAvatarUrl(state: AppViewState): string | undefined {
   const list = state.agentsList?.agents ?? [];
@@ -351,6 +400,49 @@ export function renderApp(state: AppViewState) {
                 onCreateTask: (email) => createTaskFromEmail(state as any, email),
                 onDraftReply: (email) => draftReply(state as any, email),
                 onArchive: (email) => archiveEmail(state as any, email),
+              })
+            : nothing
+        }
+
+        ${
+          state.tab === "calendar"
+            ? renderCalendar({
+                loading: state.calendarLoading,
+                error: state.calendarError,
+                events: state.calendarEvents as any[],
+                conflicts: state.calendarConflicts as any[],
+                view: state.calendarView,
+                currentDate: state.calendarCurrentDate,
+                selectedEvent: state.calendarSelectedEvent as any,
+                onViewChange: (view) => {
+                  state.calendarView = view;
+                  loadCalendarEvents(state);
+                },
+                onDateChange: (date) => {
+                  state.calendarCurrentDate = date;
+                  loadCalendarEvents(state);
+                },
+                onEventSelect: (event) => (state.calendarSelectedEvent = event),
+                onEventUpdate: async (eventId, updates) => {
+                  try {
+                    const baseUrl = getOdinApiBaseUrl();
+                    await updateEvent(baseUrl, eventId, updates as any);
+                    await loadCalendarEvents(state);
+                  } catch (err) {
+                    state.calendarError = String(err);
+                  }
+                },
+                onEventDelete: async (eventId) => {
+                  try {
+                    const baseUrl = getOdinApiBaseUrl();
+                    await deleteEvent(baseUrl, eventId);
+                    state.calendarSelectedEvent = null;
+                    await loadCalendarEvents(state);
+                  } catch (err) {
+                    state.calendarError = String(err);
+                  }
+                },
+                onRefresh: () => loadCalendarEvents(state),
               })
             : nothing
         }
