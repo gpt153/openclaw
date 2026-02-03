@@ -1,8 +1,12 @@
 /**
- * Skills-MCP Bridge
+ * Skills-MCP Bridge - Extended
  *
- * Allows OpenClaw skills to execute Odin's MCP tools (Amazon, Temu, Facebook marketplace).
- * This bridge provides a secure, rate-limited interface for marketplace operations.
+ * Allows OpenClaw skills to execute ALL Odin MCP tools:
+ * - Marketplace MCPs: Amazon, Temu, Facebook, Blocket (8 tools)
+ * - Core Intelligence: Email, Tasks, Calendar, Family, Search (30+ tools)
+ * - Laptop Edge Agent: Filesystem, Desktop, Hardware, Bash (14 tools)
+ *
+ * This bridge provides a secure, rate-limited interface for all MCP operations.
  *
  * Location: /home/samuel/sv/odin-s/openclaw-fork/src/agents/skills-mcp-bridge.ts
  */
@@ -17,12 +21,34 @@ import { jsonResult, readStringParam } from "./tools/common.js";
 // ==============================================================================
 
 const DEFAULT_ODIN_BACKEND_URL = "http://localhost:5100";
+const DEFAULT_CORE_MCP_URL = "http://localhost:5104";
+const DEFAULT_LAPTOP_AGENT_URL = "http://localhost:54321";
 const DEFAULT_TIMEOUT_MS = 30_000;
 const RATE_LIMIT_DELAY_MS = 2_000; // 2 seconds between requests per session
 
 // Whitelist of allowed MCP servers
-const ALLOWED_MCP_SERVERS = ["amazon", "temu", "facebook", "blocket"] as const;
+const ALLOWED_MCP_SERVERS = [
+  // Marketplace MCPs (already integrated)
+  "amazon",
+  "temu",
+  "facebook",
+  "blocket",
+  // Core Intelligence MCP
+  "core",
+  // Laptop Edge Agent
+  "laptop",
+] as const;
 type AllowedMcpServer = (typeof ALLOWED_MCP_SERVERS)[number];
+
+// MCP Server Configuration
+const MCP_SERVER_CONFIG = {
+  amazon: { baseUrl: DEFAULT_ODIN_BACKEND_URL, path: "/api/v1/mcp/amazon/tools" },
+  temu: { baseUrl: DEFAULT_ODIN_BACKEND_URL, path: "/api/v1/mcp/temu/tools" },
+  facebook: { baseUrl: DEFAULT_ODIN_BACKEND_URL, path: "/api/v1/mcp/facebook/tools" },
+  blocket: { baseUrl: DEFAULT_ODIN_BACKEND_URL, path: "/api/v1/mcp/blocket/tools" },
+  core: { baseUrl: DEFAULT_CORE_MCP_URL, path: "/tools" },
+  laptop: { baseUrl: DEFAULT_LAPTOP_AGENT_URL, path: "/api/task" },
+} as const;
 
 // ==============================================================================
 // Types
@@ -79,10 +105,64 @@ function checkRateLimit(sessionId: string): { allowed: boolean; waitMs?: number 
 // ==============================================================================
 
 /**
- * Execute an MCP tool on the Odin backend.
+ * Get the endpoint URL for an MCP tool based on server and tool name.
+ *
+ * @param server - MCP server name
+ * @param tool - Tool name
+ * @returns Endpoint URL
+ */
+function getEndpointUrl(server: AllowedMcpServer, tool: string): string {
+  const config = MCP_SERVER_CONFIG[server];
+
+  if (server === "laptop") {
+    // Laptop agent uses /api/task endpoint with tool in body
+    return `${config.baseUrl}${config.path}`;
+  }
+
+  if (server === "core") {
+    // Core MCP uses /tools/{tool_name} endpoint
+    return `${config.baseUrl}${config.path}/${tool}`;
+  }
+
+  // Marketplace MCPs use /api/v1/mcp/{server}/tools/{tool}
+  return `${config.baseUrl}${config.path}/${tool}`;
+}
+
+/**
+ * Prepare request body based on server type.
+ *
+ * @param server - MCP server name
+ * @param tool - Tool name
+ * @param args - Tool arguments
+ * @returns Request body
+ */
+function prepareRequestBody(
+  server: AllowedMcpServer,
+  tool: string,
+  args: Record<string, unknown>,
+): Record<string, unknown> {
+  if (server === "laptop") {
+    // Laptop agent expects { tool, parameters }
+    return {
+      tool,
+      parameters: args,
+    };
+  }
+
+  // All other servers expect args directly
+  return args;
+}
+
+/**
+ * Execute an MCP tool on the appropriate Odin server.
+ *
+ * Supports:
+ * - Marketplace MCPs (Amazon, Temu, Facebook, Blocket)
+ * - Core Intelligence MCP (Email, Tasks, Calendar, Family, Search)
+ * - Laptop Edge Agent (Filesystem, Desktop, Hardware, Bash)
  *
  * @param params - Bridge request parameters
- * @param backendUrl - Optional override for Odin backend URL
+ * @param backendUrl - Optional override for Odin backend URL (deprecated, uses MCP_SERVER_CONFIG)
  * @returns Bridge response with result or error
  */
 export async function executeMcpTool(
@@ -106,8 +186,9 @@ export async function executeMcpTool(
     };
   }
 
-  // Construct endpoint URL
-  const endpoint = `${backendUrl}/api/v1/mcp/${params.server}/tools/${params.tool}`;
+  // Get endpoint URL and prepare request body
+  const endpoint = getEndpointUrl(params.server, params.tool);
+  const requestBody = prepareRequestBody(params.server, params.tool, params.args);
 
   try {
     const controller = new AbortController();
@@ -118,7 +199,7 @@ export async function executeMcpTool(
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(params.args),
+      body: JSON.stringify(requestBody),
       signal: controller.signal,
     });
 
@@ -164,10 +245,12 @@ export async function executeMcpTool(
 
 const McpBridgeSchema = Type.Object({
   server: stringEnum(ALLOWED_MCP_SERVERS, {
-    description: "MCP server name (amazon, temu, facebook, blocket)",
+    description:
+      "MCP server: amazon, temu, facebook, blocket (marketplace), core (intelligence), laptop (edge agent)",
   }),
   tool: Type.String({
-    description: "Tool name (e.g., search_products, compare_products)",
+    description:
+      "Tool name - Marketplace: search_products, compare_products | Core: search_emails, create_task, get_family_schedule | Laptop: read_file, take_screenshot, execute_command",
   }),
   args: Type.Object(
     {},
@@ -193,7 +276,11 @@ export function createMcpBridgeTool(options?: { backendUrl?: string }): AnyAgent
   return {
     label: "MCP Execute",
     name: "mcp_execute",
-    description: `Execute MCP tool from Odin backend. Supports marketplace search (Amazon, Temu, Facebook, Blocket). Rate limited to 1 request per ${RATE_LIMIT_DELAY_MS / 1000}s per session.`,
+    description: `Execute MCP tool from Odin backend. Supports:
+- Marketplace: Amazon, Temu, Facebook, Blocket (search, compare products)
+- Core Intelligence: Email, Tasks, Calendar, Family, Search (30+ tools)
+- Laptop Edge Agent: Filesystem, Desktop, Hardware, Bash (14 tools)
+Rate limited to 1 request per ${RATE_LIMIT_DELAY_MS / 1000}s per session.`,
     parameters: McpBridgeSchema,
     execute: async (_toolCallId, args, signal) => {
       if (signal?.aborted) {
@@ -245,18 +332,20 @@ export function createMcpBridgeTool(options?: { backendUrl?: string }): AnyAgent
 
 export const MCP_BRIDGE_TOOL = {
   name: "mcp_execute",
-  description: "Execute MCP tool from Odin backend (Amazon, Temu, Facebook, Blocket)",
+  description:
+    "Execute MCP tool from Odin backend (Marketplace: Amazon/Temu/Facebook/Blocket | Core Intelligence: Email/Tasks/Calendar/Family | Laptop: Filesystem/Desktop/Hardware/Bash)",
   parameters: {
     type: "object",
     properties: {
       server: {
         type: "string",
         enum: ALLOWED_MCP_SERVERS,
-        description: "MCP server name",
+        description:
+          "MCP server: amazon, temu, facebook, blocket, core (intelligence), laptop (edge)",
       },
       tool: {
         type: "string",
-        description: "Tool name (e.g., search_products)",
+        description: "Tool name (e.g., search_products, search_emails, read_file)",
       },
       args: {
         type: "object",
