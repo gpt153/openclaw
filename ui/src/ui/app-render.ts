@@ -84,10 +84,9 @@ const AVATAR_HTTP_RE = /^https?:\/\//i;
 
 function getOdinApiBaseUrl(): string {
   // When running on odin.153.se, use the public mcp endpoint
-  // Use same protocol as current page to avoid mixed content issues
   if (window.location.hostname === "odin.153.se") {
-    const protocol = window.location.protocol; // 'http:' or 'https:'
-    return `${protocol}//mcp.odin.153.se`;
+    const protocol = window.location.protocol;
+    return `${protocol}//mcp-odin.153.se`;
   }
   // Default to localhost for local development
   return "http://localhost:5100";
