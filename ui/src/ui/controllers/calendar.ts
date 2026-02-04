@@ -183,7 +183,7 @@ export function getWeekBounds(date: Date): { start: Date; end: Date } {
   start.setHours(0, 0, 0, 0);
 
   const end = new Date(start);
-  end.setDate(start.getDate() + 7);
+  end.setMonth(start.getMonth() + 3); // Show 3 months // Show 4 weeks instead of 1
   end.setHours(23, 59, 59, 999);
 
   return { start, end };
