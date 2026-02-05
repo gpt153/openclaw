@@ -38,6 +38,8 @@ const ALLOWED_MCP_SERVERS = [
   "core",
   // School Data MCP (Quiculum)
   "quiculum",
+  // Fiction Research (Uncensored LLM via Venice/OpenRouter)
+  "fiction-research",
   // Odin Tools MCP Facade (19 tools: email, tasks, calendar, family, school, marketplace)
   "odin-tools",
   // Laptop Edge Agent
@@ -53,6 +55,7 @@ const MCP_SERVER_CONFIG = {
   blocket: { baseUrl: DEFAULT_ODIN_BACKEND_URL, path: "/api/v1/mcp/blocket/tools" },
   core: { baseUrl: DEFAULT_CORE_MCP_URL, path: "/tools" },
   quiculum: { baseUrl: DEFAULT_ODIN_BACKEND_URL, path: "/mcp/quiculum/tools" },
+  "fiction-research": { baseUrl: DEFAULT_ODIN_BACKEND_URL, path: "/mcp/fiction-research/tools" },
   "odin-tools": { baseUrl: DEFAULT_ODIN_TOOLS_URL, path: "/tools" }, // NEW: 19-tool facade
   laptop: { baseUrl: DEFAULT_LAPTOP_AGENT_URL, path: "/api/task" },
 } as const;
@@ -253,11 +256,11 @@ export async function executeMcpTool(
 const McpBridgeSchema = Type.Object({
   server: stringEnum(ALLOWED_MCP_SERVERS, {
     description:
-      "MCP server: amazon, temu, facebook, blocket (marketplace), core (intelligence), quiculum (school data), odin-tools (19 tools), laptop (edge agent)",
+      "MCP server: amazon, temu, facebook, blocket (marketplace), core (intelligence), quiculum (school data), fiction-research (uncensored LLM), odin-tools (19 tools), laptop (edge agent)",
   }),
   tool: Type.String({
     description:
-      "Tool name - Marketplace: search_products | Core: search_emails, create_task | Quiculum: get_school_news, get_school_messages, get_student_notes | Odin-Tools: retrieve_data, get_latest_emails | Laptop: read_file, execute_command",
+      "Tool name - Marketplace: search_products | Core: search_emails, create_task | Quiculum: get_school_news, get_school_messages, get_student_notes | Fiction-Research: ask_uncensored_llm | Odin-Tools: retrieve_data, get_latest_emails | Laptop: read_file, execute_command",
   }),
   args: Type.Object(
     {},
@@ -287,6 +290,7 @@ export function createMcpBridgeTool(options?: { backendUrl?: string }): AnyAgent
 - Marketplace: Amazon, Temu, Facebook, Blocket (search, compare products)
 - Core Intelligence: Email, Tasks, Calendar, Family, Search (30+ tools)
 - Quiculum: School data (get_school_news, get_school_messages, get_student_notes)
+- Fiction Research: Uncensored LLM (ask_uncensored_llm - Venice via OpenRouter)
 - Odin Tools: 19 unified tools (retrieve_data, perform_action, emails, tasks, calendar, family, school, marketplace)
 - Laptop Edge Agent: Filesystem, Desktop, Hardware, Bash (14 tools)
 Rate limited to 1 request per ${RATE_LIMIT_DELAY_MS / 1000}s per session.`,
@@ -342,7 +346,7 @@ Rate limited to 1 request per ${RATE_LIMIT_DELAY_MS / 1000}s per session.`,
 export const MCP_BRIDGE_TOOL = {
   name: "mcp_execute",
   description:
-    "Execute MCP tool from Odin backend (Marketplace: Amazon/Temu/Facebook/Blocket | Core Intelligence: Email/Tasks/Calendar/Family | Quiculum: School data | Odin-Tools: 19 unified tools | Laptop: Filesystem/Desktop/Hardware/Bash)",
+    "Execute MCP tool from Odin backend (Marketplace: Amazon/Temu/Facebook/Blocket | Core Intelligence: Email/Tasks/Calendar/Family | Quiculum: School data | Fiction Research: Uncensored LLM | Odin-Tools: 19 unified tools | Laptop: Filesystem/Desktop/Hardware/Bash)",
   parameters: {
     type: "object",
     properties: {
@@ -350,7 +354,7 @@ export const MCP_BRIDGE_TOOL = {
         type: "string",
         enum: ALLOWED_MCP_SERVERS,
         description:
-          "MCP server: amazon, temu, facebook, blocket, core (intelligence), quiculum (school), odin-tools (19 tools), laptop (edge)",
+          "MCP server: amazon, temu, facebook, blocket, core (intelligence), quiculum (school), fiction-research (uncensored LLM), odin-tools (19 tools), laptop (edge)",
       },
       tool: {
         type: "string",
