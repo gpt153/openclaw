@@ -22,6 +22,7 @@ import { jsonResult, readStringParam } from "./tools/common.js";
 
 const DEFAULT_ODIN_BACKEND_URL = "http://localhost:5100";
 const DEFAULT_CORE_MCP_URL = "http://localhost:5104";
+const DEFAULT_ODIN_TOOLS_URL = "http://localhost:5110"; // NEW: Odin Tools MCP Facade
 const DEFAULT_LAPTOP_AGENT_URL = "http://localhost:54321";
 const DEFAULT_TIMEOUT_MS = 30_000;
 const RATE_LIMIT_DELAY_MS = 2_000; // 2 seconds between requests per session
@@ -35,6 +36,8 @@ const ALLOWED_MCP_SERVERS = [
   "blocket",
   // Core Intelligence MCP
   "core",
+  // Odin Tools MCP Facade (19 tools: email, tasks, calendar, family, school, marketplace)
+  "odin-tools",
   // Laptop Edge Agent
   "laptop",
 ] as const;
@@ -47,6 +50,7 @@ const MCP_SERVER_CONFIG = {
   facebook: { baseUrl: DEFAULT_ODIN_BACKEND_URL, path: "/api/v1/mcp/facebook/tools" },
   blocket: { baseUrl: DEFAULT_ODIN_BACKEND_URL, path: "/api/v1/mcp/blocket/tools" },
   core: { baseUrl: DEFAULT_CORE_MCP_URL, path: "/tools" },
+  "odin-tools": { baseUrl: DEFAULT_ODIN_TOOLS_URL, path: "/tools" }, // NEW: 19-tool facade
   laptop: { baseUrl: DEFAULT_LAPTOP_AGENT_URL, path: "/api/task" },
 } as const;
 
@@ -119,8 +123,8 @@ function getEndpointUrl(server: AllowedMcpServer, tool: string): string {
     return `${config.baseUrl}${config.path}`;
   }
 
-  if (server === "core") {
-    // Core MCP uses /tools/{tool_name} endpoint
+  if (server === "core" || server === "odin-tools") {
+    // Core MCP and Odin Tools use /tools/{tool_name} endpoint
     return `${config.baseUrl}${config.path}/${tool}`;
   }
 
@@ -246,11 +250,11 @@ export async function executeMcpTool(
 const McpBridgeSchema = Type.Object({
   server: stringEnum(ALLOWED_MCP_SERVERS, {
     description:
-      "MCP server: amazon, temu, facebook, blocket (marketplace), core (intelligence), laptop (edge agent)",
+      "MCP server: amazon, temu, facebook, blocket (marketplace), core (intelligence), odin-tools (19 tools), laptop (edge agent)",
   }),
   tool: Type.String({
     description:
-      "Tool name - Marketplace: search_products, compare_products | Core: search_emails, create_task, get_family_schedule | Laptop: read_file, take_screenshot, execute_command",
+      "Tool name - Marketplace: search_products | Core: search_emails, create_task | Odin-Tools: retrieve_data, get_latest_emails, list_tasks, search_contacts, get_school_news | Laptop: read_file, execute_command",
   }),
   args: Type.Object(
     {},
@@ -279,6 +283,7 @@ export function createMcpBridgeTool(options?: { backendUrl?: string }): AnyAgent
     description: `Execute MCP tool from Odin backend. Supports:
 - Marketplace: Amazon, Temu, Facebook, Blocket (search, compare products)
 - Core Intelligence: Email, Tasks, Calendar, Family, Search (30+ tools)
+- Odin Tools: 19 unified tools (retrieve_data, perform_action, emails, tasks, calendar, family, school, marketplace)
 - Laptop Edge Agent: Filesystem, Desktop, Hardware, Bash (14 tools)
 Rate limited to 1 request per ${RATE_LIMIT_DELAY_MS / 1000}s per session.`,
     parameters: McpBridgeSchema,
@@ -333,7 +338,7 @@ Rate limited to 1 request per ${RATE_LIMIT_DELAY_MS / 1000}s per session.`,
 export const MCP_BRIDGE_TOOL = {
   name: "mcp_execute",
   description:
-    "Execute MCP tool from Odin backend (Marketplace: Amazon/Temu/Facebook/Blocket | Core Intelligence: Email/Tasks/Calendar/Family | Laptop: Filesystem/Desktop/Hardware/Bash)",
+    "Execute MCP tool from Odin backend (Marketplace: Amazon/Temu/Facebook/Blocket | Core Intelligence: Email/Tasks/Calendar/Family | Odin-Tools: 19 unified tools | Laptop: Filesystem/Desktop/Hardware/Bash)",
   parameters: {
     type: "object",
     properties: {
@@ -341,7 +346,7 @@ export const MCP_BRIDGE_TOOL = {
         type: "string",
         enum: ALLOWED_MCP_SERVERS,
         description:
-          "MCP server: amazon, temu, facebook, blocket, core (intelligence), laptop (edge)",
+          "MCP server: amazon, temu, facebook, blocket, core (intelligence), odin-tools (19 tools), laptop (edge)",
       },
       tool: {
         type: "string",
