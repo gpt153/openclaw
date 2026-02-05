@@ -3,6 +3,7 @@ import type { GatewayMessageChannel } from "../utils/message-channel.js";
 import type { AnyAgentTool } from "./tools/common.js";
 import { resolvePluginTools } from "../plugins/tools.js";
 import { resolveSessionAgentId } from "./agent-scope.js";
+import { createMcpBridgeTool } from "./skills-mcp-bridge.js";
 import { createAgentsListTool } from "./tools/agents-list-tool.js";
 import { createBrowserTool } from "./tools/browser-tool.js";
 import { createCanvasTool } from "./tools/canvas-tool.js";
@@ -101,6 +102,9 @@ export function createOpenClawTools(options?: {
     createGatewayTool({
       agentSessionKey: options?.agentSessionKey,
       config: options?.config,
+    }),
+    createMcpBridgeTool({
+      backendUrl: "http://localhost:5100",
     }),
     createAgentsListTool({
       agentSessionKey: options?.agentSessionKey,
