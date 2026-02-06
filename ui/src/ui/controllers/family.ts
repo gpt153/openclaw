@@ -66,7 +66,7 @@ export async function fetchChildren(state: FamilyState, baseUrl: string): Promis
     const response = await fetch(`${baseUrl}/api/v1/children/list`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: '1' }) // TODO: Get actual user_id
+      body: JSON.stringify({ user_id: 'samuel@153.se' })
     });
     if (!response.ok) {
       throw new Error(`Failed to fetch children: ${response.statusText}`);
