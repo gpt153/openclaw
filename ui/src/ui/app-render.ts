@@ -242,6 +242,8 @@ async function syncAllSchoolData(state: AppViewState) {
 }
 
 export async function loadChildrenWithSchoolData(state: AppViewState) {
+  state.familyLoading = true;
+  state.familyError = null;
   try {
     const baseUrl = getOdinApiBaseUrl();
     const { fetchChildrenWithSchoolData } = await import('./controllers/school');
@@ -258,6 +260,9 @@ export async function loadChildrenWithSchoolData(state: AppViewState) {
   } catch (err) {
     console.error('Failed to load children with school data:', err);
     state.familyChildren = [];
+    state.familyError = String(err);
+  } finally {
+    state.familyLoading = false;
   }
 }
 
