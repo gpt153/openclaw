@@ -101,6 +101,7 @@ import { renderInstances } from "./views/instances";
 import { renderLogs } from "./views/logs";
 import { renderNodes } from "./views/nodes";
 import { renderOverview } from "./views/overview";
+import { renderSchoolData } from "./views/school";
 import { renderSessions } from "./views/sessions";
 import { renderSkills } from "./views/skills";
 import { renderTasks } from "./views/tasks";
@@ -237,6 +238,26 @@ async function syncAllSchoolData(state: AppViewState) {
     }
   } catch (err) {
     console.error('Failed to sync school data:', err);
+  }
+}
+
+export async function loadChildrenWithSchoolData(state: AppViewState) {
+  try {
+    const baseUrl = getOdinApiBaseUrl();
+    const { fetchChildrenWithSchoolData } = await import('./controllers/school');
+    const children = await fetchChildrenWithSchoolData(baseUrl, 'samuel@153.se');
+    state.familyChildren = children;
+
+    // Auto-select first child if none selected
+    if (!state.schoolSelectedChildId && children.length > 0) {
+      state.schoolSelectedChildId = children[0].id;
+      await loadSchoolDataForChild(state, children[0].id);
+    } else if (state.schoolSelectedChildId) {
+      await loadSchoolDataForChild(state, state.schoolSelectedChildId);
+    }
+  } catch (err) {
+    console.error('Failed to load children with school data:', err);
+    state.familyChildren = [];
   }
 }
 
@@ -673,6 +694,150 @@ export function renderApp(state: AppViewState) {
                 onFilterSchoolData: (childId, filterType) => filterSchoolDataForChild(state, childId, filterType),
                 onSyncSchoolData: () => syncAllSchoolData(state),
               })
+            : nothing
+        }
+
+        ${
+          state.tab === "school"
+            ? html`
+                <div class="school-tab-container">
+                  ${state.familyLoading
+                    ? html`<div class="loading-spinner">Loading children...</div>`
+                    : state.familyChildren.filter((c: any) => c.school_data_enabled).length === 0
+                    ? html`
+                        <div class="empty-state">
+                          <div class="empty-state-icon">📚</div>
+                          <h3>No School Data Enabled</h3>
+                          <p>Enable school data for children in the Family tab first.</p>
+                        </div>
+                      `
+                    : html`
+                        <!-- Child Selector -->
+                        <div class="child-selector">
+                          <label for="school-child-select">Select Child:</label>
+                          <select
+                            id="school-child-select"
+                            @change=${(e: Event) => {
+                              const target = e.target as HTMLSelectElement;
+                              state.schoolSelectedChildId = target.value;
+                              loadSchoolDataForChild(state, target.value);
+                            }}
+                          >
+                            ${state.familyChildren
+                              .filter((c: any) => c.school_data_enabled)
+                              .map(
+                                (child: any) => html`
+                                  <option
+                                    value=${child.id}
+                                    ?selected=${state.schoolSelectedChildId === child.id}
+                                  >
+                                    ${child.name}
+                                  </option>
+                                `
+                              )}
+                          </select>
+                        </div>
+
+                        <!-- School Data Display -->
+                        ${state.schoolSelectedChildId
+                          ? (() => {
+                              const selectedChild = state.familyChildren.find(
+                                (c: any) => c.id === state.schoolSelectedChildId
+                              );
+                              const childId = state.schoolSelectedChildId;
+                              const schoolData = state.schoolDataByChildId[childId];
+                              const loading = state.schoolLoadingByChildId[childId];
+                              const filterType = state.schoolFilterByChildId[childId] || 'all';
+
+                              return renderSchoolData({
+                                state: {
+                                  items: schoolData?.items || [],
+                                  loading: loading || false,
+                                  error: schoolData?.error || null,
+                                  filterType: filterType,
+                                },
+                                childId: parseInt(childId),
+                                childName: selectedChild?.name || 'Unknown',
+                                onRefresh: () => loadSchoolDataForChild(state, childId),
+                                onFilterChange: (type) => filterSchoolDataForChild(state, childId, type),
+                                onSync: () => syncAllSchoolData(state),
+                              });
+                            })()
+                          : nothing}
+                      `}
+                </div>
+
+                <style>
+                  .school-tab-container {
+                    padding: 20px;
+                    max-width: 1200px;
+                    margin: 0 auto;
+                  }
+
+                  .child-selector {
+                    background: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    margin-bottom: 20px;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                  }
+
+                  .child-selector label {
+                    font-weight: 500;
+                    color: #374151;
+                  }
+
+                  .child-selector select {
+                    padding: 8px 12px;
+                    border: 1px solid #d1d5db;
+                    border-radius: 6px;
+                    font-size: 14px;
+                    min-width: 200px;
+                    cursor: pointer;
+                  }
+
+                  .child-selector select:focus {
+                    outline: none;
+                    border-color: #3b82f6;
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+                  }
+
+                  .loading-spinner {
+                    text-align: center;
+                    padding: 60px;
+                    font-size: 16px;
+                    color: #6b7280;
+                  }
+
+                  .empty-state {
+                    text-align: center;
+                    padding: 80px 20px;
+                    background: white;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                  }
+
+                  .empty-state-icon {
+                    font-size: 64px;
+                    margin-bottom: 20px;
+                  }
+
+                  .empty-state h3 {
+                    margin: 0 0 10px 0;
+                    color: #111827;
+                    font-size: 20px;
+                  }
+
+                  .empty-state p {
+                    margin: 0;
+                    color: #6b7280;
+                    font-size: 14px;
+                  }
+                </style>
+              `
             : nothing
         }
 
