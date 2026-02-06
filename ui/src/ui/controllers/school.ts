@@ -23,6 +23,35 @@ export interface SchoolDataState {
 }
 
 /**
+ * Fetch list of children with school data enabled
+ */
+export async function fetchChildrenWithSchoolData(
+  baseUrl: string,
+  userId: string
+): Promise<Array<{ id: number; name: string; school_id: string | null; school_data_enabled: boolean }>> {
+  try {
+    const response = await fetch(
+      `${baseUrl}/api/v1/school/children-with-school-data`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch children with school data: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    console.error('Error fetching children with school data:', err);
+    return [];
+  }
+}
+
+/**
  * Fetch school data for a child
  */
 export async function fetchSchoolData(

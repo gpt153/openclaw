@@ -85,6 +85,11 @@ function renderEmailListItem(email: Email, isSelected: boolean, onSelect: (email
           ${email.sender_name || email.sender_email}
         </div>
         <div class="email-meta" style="display: flex; gap: 8px; align-items: center;">
+          ${email.account_id
+            ? html`<span class="badge" style="background: var(--accent)22; color: var(--accent); border: 1px solid var(--accent)44; font-size: 11px; padding: 2px 6px;">
+                ${email.account_id}
+              </span>`
+            : nothing}
           ${renderPriorityIndicator(email.priority)}
           <span class="email-time" style="color: var(--muted); font-size: 12px;">
             ${formatAgo(new Date(email.received_at).getTime())}
@@ -124,6 +129,7 @@ function renderEmailDetail(
           <div class="email-detail-meta" style="color: var(--muted); font-size: 13px;">
             <div>From: ${email.sender_name || email.sender_email}</div>
             <div>Date: ${new Date(email.received_at).toLocaleString()}</div>
+            ${email.account_id ? html`<div>Account: <span style="color: var(--accent); font-weight: 500;">${email.account_id}</span></div>` : nothing}
             ${email.category ? html`<div>Category: ${renderCategoryBadge(email.category)}</div>` : nothing}
             <div>Priority: ${renderPriorityIndicator(email.priority)}</div>
           </div>

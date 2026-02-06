@@ -6,7 +6,6 @@ import type {
   AuditEntry,
 } from "../controllers/family";
 import { renderChildProfileCard } from "../components/child-profile";
-import { renderSchoolData } from "./school";
 import { icons } from "../icons";
 import { formatAgo } from "../format";
 
@@ -18,13 +17,6 @@ export type FamilyViewProps = {
   onViewAudit: (childId: string) => void;
   onCloseAudit: () => void;
   onUpdatePrivacy: (childId: string, level: PrivacyLevel) => void;
-  onToggleSchoolData: (childId: string, enabled: boolean) => void;
-  schoolDataByChildId: Record<string, any>;
-  schoolLoadingByChildId: Record<string, boolean>;
-  schoolFilterByChildId: Record<string, 'all' | 'news' | 'message' | 'note'>;
-  onLoadSchoolData: (childId: string) => void;
-  onFilterSchoolData: (childId: string, filterType: 'all' | 'news' | 'message' | 'note') => void;
-  onSyncSchoolData: () => void;
 };
 
 /**
@@ -224,22 +216,6 @@ export function renderFamily(props: FamilyViewProps): TemplateResult {
                       onPrivacySettings: props.onPrivacySettings,
                       onViewAudit: props.onViewAudit,
                     })}
-
-                    ${child.school_data_enabled
-                      ? renderSchoolData({
-                          state: {
-                            items: props.schoolDataByChildId[child.id]?.items || [],
-                            loading: props.schoolLoadingByChildId[child.id] || false,
-                            error: props.schoolDataByChildId[child.id]?.error || null,
-                            filterType: props.schoolFilterByChildId[child.id] || 'all',
-                          },
-                          childId: parseInt(child.id),
-                          childName: child.name,
-                          onRefresh: () => props.onLoadSchoolData(child.id),
-                          onFilterChange: (filterType) => props.onFilterSchoolData(child.id, filterType),
-                          onSync: props.onSyncSchoolData,
-                        })
-                      : nothing}
                   </div>
                 `,
               )}

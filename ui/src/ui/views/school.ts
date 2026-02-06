@@ -19,10 +19,12 @@ export interface SchoolViewProps {
   onRefresh: () => void;
   onFilterChange: (type: 'all' | 'news' | 'message' | 'note') => void;
   onSync: () => void;
+  expandedItems?: Set<number>;
+  onToggleExpand?: (itemId: number) => void;
 }
 
 export function renderSchoolData(props: SchoolViewProps) {
-  const { state, childId, childName, onRefresh, onFilterChange, onSync } = props;
+  const { state, childId, childName, onRefresh, onFilterChange, onSync, expandedItems = new Set(), onToggleExpand } = props;
 
   return html`
     <div class="school-data-container">
@@ -73,7 +75,7 @@ export function renderSchoolData(props: SchoolViewProps) {
       <!-- Content -->
       ${state.loading ? renderLoading() : nothing}
       ${state.error ? renderError(state.error) : nothing}
-      ${!state.loading && !state.error ? renderItems(state.items) : nothing}
+      ${!state.loading && !state.error ? renderItems(state.items, expandedItems, onToggleExpand) : nothing}
     </div>
 
     <style>
@@ -170,11 +172,18 @@ export function renderSchoolData(props: SchoolViewProps) {
         border-radius: 8px;
         background: #fafafa;
         transition: all 0.2s;
+        user-select: none;
       }
 
       .school-item:hover {
         background: white;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .school-item.expanded {
+        background: white;
+        border-color: #3b82f6;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
       }
 
       .item-header {
@@ -211,12 +220,45 @@ export function renderSchoolData(props: SchoolViewProps) {
         line-height: 1.5;
       }
 
-      .item-metadata {
-        margin-top: 10px;
-        padding-top: 10px;
+      .item-content-expanded {
+        margin-top: 16px;
+        padding-top: 16px;
         border-top: 1px solid #e5e7eb;
-        font-size: 12px;
-        color: #6b7280;
+        animation: slideDown 0.2s ease-out;
+      }
+
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .item-metadata {
+        margin-top: 12px;
+        padding: 12px;
+        background: #f9fafb;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #374151;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .item-metadata div {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      .item-metadata strong {
+        color: #1f2937;
+        min-width: 70px;
       }
 
       .loading {
@@ -263,7 +305,11 @@ function renderError(error: string) {
   `;
 }
 
-function renderItems(items: SchoolDataItem[]) {
+function renderItems(
+  items: SchoolDataItem[],
+  expandedItems: Set<number> = new Set(),
+  onToggleExpand?: (itemId: number) => void
+) {
   if (items.length === 0) {
     return html`
       <div class="empty-state">
@@ -278,46 +324,64 @@ function renderItems(items: SchoolDataItem[]) {
 
   return html`
     <div class="school-items">
-      ${items.map((item) => renderItem(item))}
+      ${items.map((item) => renderItem(item, expandedItems, onToggleExpand))}
     </div>
   `;
 }
 
-function renderItem(item: SchoolDataItem) {
+function renderItem(
+  item: SchoolDataItem,
+  expandedItems: Set<number> = new Set(),
+  onToggleExpand?: (itemId: number) => void
+) {
   const icon = getSchoolDataIcon(item.type);
   const color = getSchoolDataColor(item.type);
   const date = formatSchoolDataDate(item.published_at);
+  const isExpanded = expandedItems.has(item.id);
 
   return html`
-    <div class="school-item">
+    <div
+      class="school-item ${isExpanded ? 'expanded' : ''}"
+      @click=${() => onToggleExpand?.(item.id)}
+      style="cursor: pointer;"
+    >
       <div class="item-header">
         <span style="font-size: 18px;">${icon}</span>
         <span class="item-type-badge" style="background-color: ${color};">
           ${item.type.toUpperCase()}
         </span>
         <span class="item-date">${date}</span>
+        <span style="margin-left: auto; font-size: 18px; color: #6b7280;">
+          ${isExpanded ? '▼' : '▶'}
+        </span>
       </div>
 
       <h4 class="item-title">${item.title || '(No title)'}</h4>
 
-      ${item.content
-        ? html`<div class="item-content">${item.content}</div>`
-        : nothing}
-
-      ${item.metadata && Object.keys(item.metadata).length > 0
+      ${isExpanded
         ? html`
-            <div class="item-metadata">
-              ${item.metadata.author
-                ? html`<span>📝 By: ${item.metadata.author}</span>`
-                : nothing}
-              ${item.metadata.sender
-                ? html`<span>✉️ From: ${item.metadata.sender}</span>`
-                : nothing}
-              ${item.metadata.teacher
-                ? html`<span>👨‍🏫 Teacher: ${item.metadata.teacher}</span>`
-                : nothing}
-              ${item.metadata.subject
-                ? html`<span>📚 Subject: ${item.metadata.subject}</span>`
+            <div class="item-content-expanded">
+              ${item.content
+                ? html`<div class="item-content">${item.content}</div>`
+                : html`<div class="item-content muted">(No content)</div>`}
+
+              ${item.metadata && Object.keys(item.metadata).length > 0
+                ? html`
+                    <div class="item-metadata">
+                      ${item.metadata.author
+                        ? html`<div>📝 <strong>Author:</strong> ${item.metadata.author}</div>`
+                        : nothing}
+                      ${item.metadata.sender
+                        ? html`<div>✉️ <strong>From:</strong> ${item.metadata.sender}</div>`
+                        : nothing}
+                      ${item.metadata.teacher
+                        ? html`<div>👨‍🏫 <strong>Teacher:</strong> ${item.metadata.teacher}</div>`
+                        : nothing}
+                      ${item.metadata.subject
+                        ? html`<div>📚 <strong>Subject:</strong> ${item.metadata.subject}</div>`
+                        : nothing}
+                    </div>
+                  `
                 : nothing}
             </div>
           `

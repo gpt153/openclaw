@@ -1,0 +1,140 @@
+{
+  "mcpServers": {
+    "odin-tools": {
+      "name": "Odin Personal AI Tools",
+      "description": "Personal AI assistant with 19 tools: emails, tasks, calendar, family coordination, school data, and marketplace search",
+      "transport": {
+        "type": "sse",
+        "url": "http://localhost:5110/mcp/sse"
+      },
+      "capabilities": {
+        "tools": true,
+        "resources": false,
+        "prompts": false
+      },
+      "tools": [
+        "retrieve_data",
+        "perform_action",
+        "get_latest_emails",
+        "search_emails",
+        "get_calendar_events",
+        "get_events_today",
+        "list_tasks",
+        "create_task",
+        "search_contacts",
+        "get_family_member_info",
+        "get_family_schedule",
+        "get_school_news",
+        "get_school_messages",
+        "get_student_notes",
+        "search_blocket_items",
+        "get_blocket_listing_details",
+        "compare_blocket_listings",
+        "search_temu_products",
+        "search_amazon_products"
+      ]
+    },
+    "usage-monitoring": {
+      "name": "AI Router MCP",
+      "description": "AI Router for service selection, usage monitoring, cost tracking, and subscription optimization. Provides recommendations for Claude, OpenAI, and Gemini subscriptions.",
+      "transport": {
+        "type": "sse",
+        "url": "http://localhost:5103/mcp/sse"
+      },
+      "capabilities": {
+        "tools": true,
+        "resources": false,
+        "prompts": false
+      },
+      "tools": [
+        "get_usage_summary",
+        "get_cost_breakdown",
+        "get_usage_trends",
+        "forecast_monthly_cost",
+        "compare_subscription_tiers",
+        "get_current_subscriptions",
+        "collect_usage_snapshot",
+        "analyze_subscription_usage",
+        "get_api_key",
+        "get_api_quota_status",
+        "get_claude_token",
+        "list_claude_accounts",
+        "recommend_ai_service",
+        "track_ai_usage",
+        "get_service_quotas"
+      ]
+    },
+    "quiculum": {
+      "name": "Quiculum School Data MCP",
+      "description": "Access school information, messages, student notes (elevanteckningar), and schedules from Quiculum",
+      "transport": {
+        "type": "stdio",
+        "command": "docker",
+        "args": [
+          "run",
+          "--rm",
+          "-i",
+          "--network", "odin-network",
+          "-v", "/home/samuel/.archon/workspaces/quiculum-monitor/config.json:/app/config.json:ro",
+          "-v", "/home/samuel/.archon/workspaces/quiculum-monitor/data:/app/data",
+          "quiculum-mcp:latest"
+        ]
+      },
+      "environment": {
+        "LOG_LEVEL": "INFO",
+        "MCP_SERVER_NAME": "quiculum",
+        "PYTHONUNBUFFERED": "1"
+      },
+      "capabilities": {
+        "tools": true,
+        "resources": false,
+        "prompts": false
+      }
+    },
+    "blocket": {
+      "name": "Blocket Marketplace MCP",
+      "description": "Search and compare used items on Blocket.se (Sweden's largest classifieds marketplace). Find best deals by searching listings, comparing prices, and viewing detailed information.",
+      "transport": {
+        "type": "stdio",
+        "command": "docker",
+        "args": [
+          "run",
+          "--rm",
+          "-i",
+          "--network", "odin-network",
+          "odin/blocket-mcp:latest"
+        ]
+      },
+      "environment": {
+        "LOG_LEVEL": "INFO",
+        "BLOCKET_BASE_URL": "https://www.blocket.se",
+        "RATE_LIMIT_DELAY": "2.0",
+        "REQUEST_TIMEOUT": "30",
+        "PYTHONUNBUFFERED": "1"
+      },
+      "capabilities": {
+        "tools": true,
+        "resources": false,
+        "prompts": false
+      },
+      "tools": [
+        "search_listings",
+        "get_listing_details",
+        "compare_listings"
+      ]
+    }
+  },
+  "gateway": {
+    "port": 3000,
+    "host": "0.0.0.0",
+    "logLevel": "info",
+    "cors": {
+      "enabled": true,
+      "origins": ["*"]
+    },
+    "rateLimit": {
+      "enabled": true,
+      "requestsPerMinute": 60
+    }
+  }
+}
