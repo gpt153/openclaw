@@ -112,7 +112,7 @@ function getOdinApiBaseUrl(): string {
   // When running on odin.153.se, use the public mcp endpoint
   if (window.location.hostname === "odin.153.se") {
     const protocol = window.location.protocol;
-    return `${protocol}//mcp.odin.153.se`;
+    return `${protocol}//mcp-odin.153.se`;
   }
   // Default to localhost for local development
   return "http://localhost:5100";
