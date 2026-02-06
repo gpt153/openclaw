@@ -59,11 +59,15 @@ export function canAccessField(profile: ChildProfile, field: string): boolean {
 /**
  * Fetch all children profiles
  */
-export async function fetchChildren(state: FamilyState): Promise<void> {
+export async function fetchChildren(state: FamilyState, baseUrl: string): Promise<void> {
   state.loading = true;
   state.error = null;
   try {
-    const response = await fetch("http://localhost:5100/api/family/");
+    const response = await fetch(`${baseUrl}/api/v1/children/list`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: '1' }) // TODO: Get actual user_id
+    });
     if (!response.ok) {
       throw new Error(`Failed to fetch children: ${response.statusText}`);
     }
@@ -79,11 +83,12 @@ export async function fetchChildren(state: FamilyState): Promise<void> {
  * Fetch specific child data (server validates privacy)
  */
 export async function fetchChildData(
+  baseUrl: string,
   childId: string,
   dataType: string,
 ): Promise<unknown> {
   const response = await fetch(
-    `http://localhost:5100/api/family/child/${childId}/${dataType}`,
+    `${baseUrl}/api/v1/children/${childId}/${dataType}`,
   );
   if (!response.ok) {
     throw new Error(`Failed to fetch ${dataType}: ${response.statusText}`);
@@ -96,12 +101,13 @@ export async function fetchChildData(
  */
 export async function updatePrivacyLevel(
   state: FamilyState,
+  baseUrl: string,
   childId: string,
   level: PrivacyLevel,
 ): Promise<void> {
   try {
     const response = await fetch(
-      `http://localhost:5100/api/family/child/${childId}/privacy`,
+      `${baseUrl}/api/v1/children/${childId}/privacy`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -127,12 +133,13 @@ export async function updatePrivacyLevel(
  */
 export async function fetchAuditLog(
   state: FamilyState,
+  baseUrl: string,
   childId: string,
 ): Promise<void> {
   state.auditLoading = true;
   try {
     const response = await fetch(
-      `http://localhost:5100/api/family/child/${childId}/audit`,
+      `${baseUrl}/api/v1/children/${childId}/audit`,
     );
     if (!response.ok) {
       throw new Error(`Failed to fetch audit log: ${response.statusText}`);
@@ -150,12 +157,13 @@ export async function fetchAuditLog(
  */
 export async function toggleSchoolData(
   state: FamilyState,
+  baseUrl: string,
   childId: string,
   enabled: boolean,
 ): Promise<void> {
   try {
     const response = await fetch(
-      `http://localhost:5100/api/family/child/${childId}/school-data`,
+      `${baseUrl}/api/v1/children/${childId}/school-data`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },

@@ -157,7 +157,7 @@ async function loadFamilyData(state: AppViewState) {
       auditLog: state.familyAuditLog,
       auditLoading: state.familyAuditLoading,
     };
-    await fetchChildren(familyState);
+    await fetchChildren(familyState, baseUrl);
     state.familyChildren = familyState.children;
     state.familyError = familyState.error;
   } catch (err) {
@@ -437,7 +437,10 @@ export function renderApp(state: AppViewState) {
                 onRun: (job) => runCronJob(state, job),
                 onRemove: (job) => removeCronJob(state, job),
                 onLoadRuns: (jobId) => loadCronRuns(state, jobId),
-                onRefreshBackend: () => loadBackendAutomations(state),
+                onRefreshBackend: () => {
+                  const baseUrl = getOdinApiBaseUrl();
+                  loadBackendAutomations(state, baseUrl);
+                },
               })
             : nothing
         }
@@ -538,6 +541,7 @@ export function renderApp(state: AppViewState) {
                   state.familySelectedChildId = childId;
                   state.familyAuditLoading = true;
                   try {
+                    const baseUrl = getOdinApiBaseUrl();
                     const familyState = {
                       children: state.familyChildren,
                       loading: state.familyLoading,
@@ -546,7 +550,7 @@ export function renderApp(state: AppViewState) {
                       auditLog: state.familyAuditLog,
                       auditLoading: true,
                     };
-                    await fetchAuditLog(familyState, childId);
+                    await fetchAuditLog(familyState, baseUrl, childId);
                     state.familyAuditLog = familyState.auditLog;
                   } finally {
                     state.familyAuditLoading = false;
@@ -558,7 +562,16 @@ export function renderApp(state: AppViewState) {
                 },
                 onUpdatePrivacy: async (childId, level) => {
                   try {
-                    await updatePrivacyLevel({} as any, childId, level);
+                    const baseUrl = getOdinApiBaseUrl();
+                    const familyState = {
+                      children: state.familyChildren,
+                      loading: state.familyLoading,
+                      error: state.familyError,
+                      selectedChildId: state.familySelectedChildId,
+                      auditLog: state.familyAuditLog,
+                      auditLoading: state.familyAuditLoading,
+                    };
+                    await updatePrivacyLevel(familyState, baseUrl, childId, level);
                     await loadFamilyData(state);
                   } catch (err) {
                     state.familyError = String(err);
@@ -566,7 +579,16 @@ export function renderApp(state: AppViewState) {
                 },
                 onToggleSchoolData: async (childId, enabled) => {
                   try {
-                    await toggleSchoolData({} as any, childId, enabled);
+                    const baseUrl = getOdinApiBaseUrl();
+                    const familyState = {
+                      children: state.familyChildren,
+                      loading: state.familyLoading,
+                      error: state.familyError,
+                      selectedChildId: state.familySelectedChildId,
+                      auditLog: state.familyAuditLog,
+                      auditLoading: state.familyAuditLoading,
+                    };
+                    await toggleSchoolData(familyState, baseUrl, childId, enabled);
                     await loadFamilyData(state);
                   } catch (err) {
                     state.familyError = String(err);

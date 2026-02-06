@@ -51,13 +51,13 @@ export async function loadCronJobs(state: CronState) {
   }
 }
 
-export async function loadBackendAutomations(state: CronState) {
+export async function loadBackendAutomations(state: CronState, baseUrl: string) {
   if (state.backendAutomationsLoading) {
     return;
   }
   state.backendAutomationsLoading = true;
   try {
-    const response = await fetch("http://localhost:5100/api/v1/automations/schedule");
+    const response = await fetch(`${baseUrl}/api/v1/automations/schedule`);
     if (!response.ok) {
       throw new Error(`Failed to fetch backend automations: ${response.status}`);
     }
