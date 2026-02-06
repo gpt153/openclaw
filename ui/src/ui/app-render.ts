@@ -54,6 +54,11 @@ import {
   type PrivacyLevel,
 } from "./controllers/family";
 import {
+  fetchSchoolData,
+  syncSchoolData,
+  type SchoolDataState,
+} from "./controllers/school";
+import {
   fetchTasks,
   createTask,
   updateTask,
@@ -160,11 +165,78 @@ async function loadFamilyData(state: AppViewState) {
     await fetchChildren(familyState, baseUrl);
     state.familyChildren = familyState.children;
     state.familyError = familyState.error;
+
+    // Auto-load school data for children with school_data_enabled
+    for (const child of state.familyChildren) {
+      if (child.school_data_enabled) {
+        await loadSchoolDataForChild(state, child.id);
+      }
+    }
   } catch (err) {
     state.familyError = String(err);
     state.familyChildren = [];
   } finally {
     state.familyLoading = false;
+  }
+}
+
+async function loadSchoolDataForChild(state: AppViewState, childId: string) {
+  const childIdNum = parseInt(childId);
+  if (state.schoolLoadingByChildId[childId]) {
+    return;
+  }
+
+  state.schoolLoadingByChildId[childId] = true;
+  const filterType = state.schoolFilterByChildId[childId] || 'all';
+
+  if (!state.schoolDataByChildId[childId]) {
+    state.schoolDataByChildId[childId] = {
+      items: [],
+      error: null,
+    };
+  }
+
+  try {
+    const baseUrl = getOdinApiBaseUrl();
+    const schoolDataState: SchoolDataState = {
+      items: state.schoolDataByChildId[childId].items || [],
+      loading: true,
+      error: null,
+      filterType: filterType,
+    };
+
+    await fetchSchoolData(schoolDataState, baseUrl, childIdNum);
+    state.schoolDataByChildId[childId] = {
+      items: schoolDataState.items,
+      error: schoolDataState.error,
+    };
+  } catch (err) {
+    state.schoolDataByChildId[childId] = {
+      items: [],
+      error: String(err),
+    };
+  } finally {
+    state.schoolLoadingByChildId[childId] = false;
+  }
+}
+
+async function filterSchoolDataForChild(state: AppViewState, childId: string, filterType: 'all' | 'news' | 'message' | 'note') {
+  state.schoolFilterByChildId[childId] = filterType;
+  await loadSchoolDataForChild(state, childId);
+}
+
+async function syncAllSchoolData(state: AppViewState) {
+  try {
+    const baseUrl = getOdinApiBaseUrl();
+    const result = await syncSchoolData(baseUrl, 'samuel@153.se');
+    if (result.success) {
+      // Reload school data for all children
+      for (const child of state.familyChildren) {
+        await loadSchoolDataForChild(state, child.id);
+      }
+    }
+  } catch (err) {
+    console.error('Failed to sync school data:', err);
   }
 }
 
@@ -594,6 +666,12 @@ export function renderApp(state: AppViewState) {
                     state.familyError = String(err);
                   }
                 },
+                schoolDataByChildId: state.schoolDataByChildId,
+                schoolLoadingByChildId: state.schoolLoadingByChildId,
+                schoolFilterByChildId: state.schoolFilterByChildId,
+                onLoadSchoolData: (childId) => loadSchoolDataForChild(state, childId),
+                onFilterSchoolData: (childId, filterType) => filterSchoolDataForChild(state, childId, filterType),
+                onSyncSchoolData: () => syncAllSchoolData(state),
               })
             : nothing
         }

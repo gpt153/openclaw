@@ -238,6 +238,10 @@ export class OpenClawApp extends LitElement {
   @state() familyAuditLog: Array<any> = [];
   @state() familyAuditLoading = false;
 
+  @state() schoolDataByChildId: Record<string, any> = {};
+  @state() schoolLoadingByChildId: Record<string, boolean> = {};
+  @state() schoolFilterByChildId: Record<string, 'all' | 'news' | 'message' | 'note'> = {};
+
   @state() tasksLoading = false;
   @state() tasks: Array<any> = [];
   @state() tasksError: string | null = null;
