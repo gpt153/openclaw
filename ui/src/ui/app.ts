@@ -231,6 +231,27 @@ export class OpenClawApp extends LitElement {
   @state() calendarSelectedEvent: unknown = null;
   @state() calendarError: string | null = null;
 
+  @state() familyLoading = false;
+  @state() familyChildren: Array<any> = [];
+  @state() familyError: string | null = null;
+  @state() familySelectedChildId: string | null = null;
+  @state() familyAuditLog: Array<any> = [];
+  @state() familyAuditLoading = false;
+
+  @state() tasksLoading = false;
+  @state() tasks: Array<any> = [];
+  @state() tasksError: string | null = null;
+  @state() tasksFilters: any = { status: "all", priority: "all", due_date: "all" };
+  @state() tasksViewMode: "kanban" | "list" = "kanban";
+  @state() tasksSelectedTasks = new Set<string>();
+  @state() tasksShowCreateModal = false;
+  @state() tasksCreateForm = {
+    title: "",
+    description: "",
+    priority: 3 as const,
+    due_date: "",
+  };
+
   @state() skillsLoading = false;
   @state() skillsReport: SkillStatusReport | null = null;
   @state() skillsError: string | null = null;

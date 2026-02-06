@@ -19,6 +19,7 @@ import {
   runCronJob,
   removeCronJob,
   addCronJob,
+  loadBackendAutomations,
 } from "./controllers/cron";
 import { loadDebug, callDebugMethod } from "./controllers/debug";
 import {
@@ -44,6 +45,24 @@ import {
   revokeDeviceToken,
   rotateDeviceToken,
 } from "./controllers/devices";
+import {
+  fetchChildren,
+  updatePrivacyLevel,
+  fetchAuditLog,
+  toggleSchoolData,
+  type ChildProfile,
+  type PrivacyLevel,
+} from "./controllers/family";
+import {
+  fetchTasks,
+  createTask,
+  updateTask,
+  deleteTask,
+  bulkDeleteTasks,
+  bulkCompleteTasks,
+  type Task,
+  type TaskFilters,
+} from "./controllers/tasks";
 import {
   loadExecApprovals,
   removeExecApprovalsFormValue,
@@ -71,6 +90,7 @@ import { renderDebug } from "./views/debug";
 import { renderEmails } from "./views/emails";
 import { renderCalendar } from "./views/calendar";
 import { renderExecApprovalPrompt } from "./views/exec-approval";
+import { renderFamily } from "./views/family";
 import { renderGatewayUrlConfirmation } from "./views/gateway-url-confirmation";
 import { renderInstances } from "./views/instances";
 import { renderLogs } from "./views/logs";
@@ -78,6 +98,7 @@ import { renderNodes } from "./views/nodes";
 import { renderOverview } from "./views/overview";
 import { renderSessions } from "./views/sessions";
 import { renderSkills } from "./views/skills";
+import { renderTasks } from "./views/tasks";
 
 const AVATAR_DATA_RE = /^data:/i;
 const AVATAR_HTTP_RE = /^https?:\/\//i;
@@ -117,6 +138,51 @@ async function loadCalendarEvents(state: AppViewState) {
     state.calendarConflicts = [];
   } finally {
     state.calendarLoading = false;
+  }
+}
+
+async function loadFamilyData(state: AppViewState) {
+  if (state.familyLoading) {
+    return;
+  }
+  state.familyLoading = true;
+  state.familyError = null;
+  try {
+    const baseUrl = getOdinApiBaseUrl();
+    const familyState = {
+      children: state.familyChildren,
+      loading: state.familyLoading,
+      error: state.familyError,
+      selectedChildId: state.familySelectedChildId,
+      auditLog: state.familyAuditLog,
+      auditLoading: state.familyAuditLoading,
+    };
+    await fetchChildren(familyState);
+    state.familyChildren = familyState.children;
+    state.familyError = familyState.error;
+  } catch (err) {
+    state.familyError = String(err);
+    state.familyChildren = [];
+  } finally {
+    state.familyLoading = false;
+  }
+}
+
+async function loadTasksData(state: AppViewState) {
+  if (state.tasksLoading) {
+    return;
+  }
+  state.tasksLoading = true;
+  state.tasksError = null;
+  try {
+    const baseUrl = getOdinApiBaseUrl();
+    const tasks = await fetchTasks(baseUrl, state.tasksFilters);
+    state.tasks = tasks;
+  } catch (err) {
+    state.tasksError = String(err);
+    state.tasks = [];
+  } finally {
+    state.tasksLoading = false;
   }
 }
 
@@ -445,6 +511,170 @@ export function renderApp(state: AppViewState) {
                   }
                 },
                 onRefresh: () => loadCalendarEvents(state),
+              })
+            : nothing
+        }
+
+        ${
+          state.tab === "family"
+            ? renderFamily({
+                state: {
+                  children: state.familyChildren,
+                  loading: state.familyLoading,
+                  error: state.familyError,
+                  selectedChildId: state.familySelectedChildId,
+                  auditLog: state.familyAuditLog,
+                  auditLoading: state.familyAuditLoading,
+                },
+                onRefresh: () => loadFamilyData(state),
+                onEditChild: (childId) => {
+                  // TODO: Implement edit modal
+                  console.log("Edit child:", childId);
+                },
+                onPrivacySettings: (childId) => {
+                  state.familySelectedChildId = childId;
+                },
+                onViewAudit: async (childId) => {
+                  state.familySelectedChildId = childId;
+                  state.familyAuditLoading = true;
+                  try {
+                    const familyState = {
+                      children: state.familyChildren,
+                      loading: state.familyLoading,
+                      error: state.familyError,
+                      selectedChildId: childId,
+                      auditLog: state.familyAuditLog,
+                      auditLoading: true,
+                    };
+                    await fetchAuditLog(familyState, childId);
+                    state.familyAuditLog = familyState.auditLog;
+                  } finally {
+                    state.familyAuditLoading = false;
+                  }
+                },
+                onCloseAudit: () => {
+                  state.familySelectedChildId = null;
+                  state.familyAuditLog = [];
+                },
+                onUpdatePrivacy: async (childId, level) => {
+                  try {
+                    await updatePrivacyLevel({} as any, childId, level);
+                    await loadFamilyData(state);
+                  } catch (err) {
+                    state.familyError = String(err);
+                  }
+                },
+                onToggleSchoolData: async (childId, enabled) => {
+                  try {
+                    await toggleSchoolData({} as any, childId, enabled);
+                    await loadFamilyData(state);
+                  } catch (err) {
+                    state.familyError = String(err);
+                  }
+                },
+              })
+            : nothing
+        }
+
+        ${
+          state.tab === "tasks"
+            ? renderTasks({
+                loading: state.tasksLoading,
+                error: state.tasksError,
+                tasks: state.tasks,
+                filters: state.tasksFilters,
+                viewMode: state.tasksViewMode,
+                selectedTasks: state.tasksSelectedTasks,
+                showCreateModal: state.tasksShowCreateModal,
+                createForm: state.tasksCreateForm,
+                onViewModeChange: (mode) => {
+                  state.tasksViewMode = mode;
+                },
+                onFilterChange: (filters) => {
+                  state.tasksFilters = filters;
+                  loadTasksData(state);
+                },
+                onTaskSelect: (taskId, selected) => {
+                  if (selected) {
+                    state.tasksSelectedTasks.add(taskId);
+                  } else {
+                    state.tasksSelectedTasks.delete(taskId);
+                  }
+                  state.tasksSelectedTasks = new Set(state.tasksSelectedTasks);
+                },
+                onTaskUpdate: async (taskId, updates) => {
+                  try {
+                    const baseUrl = getOdinApiBaseUrl();
+                    await updateTask(baseUrl, taskId, updates);
+                    await loadTasksData(state);
+                  } catch (err) {
+                    state.tasksError = String(err);
+                  }
+                },
+                onTaskDelete: async (taskId) => {
+                  try {
+                    const baseUrl = getOdinApiBaseUrl();
+                    await deleteTask(baseUrl, taskId);
+                    await loadTasksData(state);
+                  } catch (err) {
+                    state.tasksError = String(err);
+                  }
+                },
+                onBulkDelete: async () => {
+                  try {
+                    const baseUrl = getOdinApiBaseUrl();
+                    await bulkDeleteTasks(baseUrl, Array.from(state.tasksSelectedTasks));
+                    state.tasksSelectedTasks.clear();
+                    await loadTasksData(state);
+                  } catch (err) {
+                    state.tasksError = String(err);
+                  }
+                },
+                onBulkComplete: async () => {
+                  try {
+                    const baseUrl = getOdinApiBaseUrl();
+                    await bulkCompleteTasks(baseUrl, Array.from(state.tasksSelectedTasks));
+                    state.tasksSelectedTasks.clear();
+                    await loadTasksData(state);
+                  } catch (err) {
+                    state.tasksError = String(err);
+                  }
+                },
+                onShowCreateModal: () => {
+                  state.tasksShowCreateModal = true;
+                },
+                onHideCreateModal: () => {
+                  state.tasksShowCreateModal = false;
+                  state.tasksCreateForm = {
+                    title: "",
+                    description: "",
+                    priority: 3,
+                    due_date: "",
+                  };
+                },
+                onCreateFormChange: (field, value) => {
+                  state.tasksCreateForm = {
+                    ...state.tasksCreateForm,
+                    [field]: value,
+                  };
+                },
+                onCreateTask: async () => {
+                  try {
+                    const baseUrl = getOdinApiBaseUrl();
+                    await createTask(baseUrl, state.tasksCreateForm);
+                    state.tasksShowCreateModal = false;
+                    state.tasksCreateForm = {
+                      title: "",
+                      description: "",
+                      priority: 3,
+                      due_date: "",
+                    };
+                    await loadTasksData(state);
+                  } catch (err) {
+                    state.tasksError = String(err);
+                  }
+                },
+                onRefresh: () => loadTasksData(state),
               })
             : nothing
         }
