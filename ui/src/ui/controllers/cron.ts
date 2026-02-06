@@ -1,5 +1,5 @@
 import type { GatewayBrowserClient } from "../gateway";
-import type { CronJob, CronRunLogEntry, CronStatus } from "../types";
+import type { CronJob, CronRunLogEntry, CronStatus, BackendAutomation } from "../types";
 import type { CronFormState } from "../ui-types";
 import { toNumber } from "../format";
 
@@ -8,6 +8,8 @@ export type CronState = {
   connected: boolean;
   cronLoading: boolean;
   cronJobs: CronJob[];
+  backendAutomations: BackendAutomation[];
+  backendAutomationsLoading: boolean;
   cronStatus: CronStatus | null;
   cronError: string | null;
   cronForm: CronFormState;
@@ -46,6 +48,26 @@ export async function loadCronJobs(state: CronState) {
     state.cronError = String(err);
   } finally {
     state.cronLoading = false;
+  }
+}
+
+export async function loadBackendAutomations(state: CronState) {
+  if (state.backendAutomationsLoading) {
+    return;
+  }
+  state.backendAutomationsLoading = true;
+  try {
+    const response = await fetch("http://localhost:5100/api/v1/automations/schedule");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch backend automations: ${response.status}`);
+    }
+    const data = await response.json();
+    state.backendAutomations = Array.isArray(data.tasks) ? data.tasks : [];
+  } catch (err) {
+    console.error("Failed to load backend automations:", err);
+    state.backendAutomations = [];
+  } finally {
+    state.backendAutomationsLoading = false;
   }
 }
 

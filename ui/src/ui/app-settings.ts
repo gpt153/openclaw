@@ -9,7 +9,7 @@ import {
 import { scheduleChatScroll, scheduleLogsScroll } from "./app-scroll";
 import { loadChannels } from "./controllers/channels";
 import { loadConfig, loadConfigSchema } from "./controllers/config";
-import { loadCronJobs, loadCronStatus } from "./controllers/cron";
+import { loadBackendAutomations, loadCronJobs, loadCronStatus } from "./controllers/cron";
 import { loadDebug } from "./controllers/debug";
 import { loadDevices } from "./controllers/devices";
 import { loadExecApprovals } from "./controllers/exec-approvals";
@@ -391,5 +391,6 @@ export async function loadCron(host: SettingsHost) {
     loadChannels(host as unknown as OpenClawApp, false),
     loadCronStatus(host as unknown as OpenClawApp),
     loadCronJobs(host as unknown as OpenClawApp),
+    loadBackendAutomations(host as unknown as OpenClawApp),
   ]);
 }

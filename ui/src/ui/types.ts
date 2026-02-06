@@ -461,6 +461,16 @@ export type CronRunLogEntry = {
   summary?: string;
 };
 
+export type BackendAutomation = {
+  name: string;
+  task: string;
+  schedule_type: string;
+  schedule_description: string;
+  enabled: boolean;
+  last_run: string | null;
+  next_run: string | null;
+};
+
 export type SkillsStatusConfigCheck = {
   path: string;
   value: unknown;

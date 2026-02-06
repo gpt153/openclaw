@@ -10,6 +10,7 @@ import type { ThemeMode } from "./theme";
 import type { ThemeTransitionContext } from "./theme-transition";
 import type {
   AgentsListResult,
+  BackendAutomation,
   ChannelsStatusSnapshot,
   ConfigSnapshot,
   CronJob,
@@ -119,12 +120,21 @@ export type AppViewState = {
   cronRunsJobId: string | null;
   cronRuns: CronRunLogEntry[];
   cronBusy: boolean;
+  backendAutomations: BackendAutomation[];
+  backendAutomationsLoading: boolean;
   emailsLoading: boolean;
   emails: unknown[];
   selectedEmail: unknown;
   emailError: string | null;
   emailSearchQuery: string;
   emailFilters: Record<string, string | undefined>;
+  calendarLoading: boolean;
+  calendarEvents: unknown[];
+  calendarConflicts: unknown[];
+  calendarView: "weekly" | "daily";
+  calendarCurrentDate: Date;
+  calendarSelectedEvent: unknown;
+  calendarError: string | null;
   skillsLoading: boolean;
   skillsReport: SkillStatusReport | null;
   skillsError: string | null;

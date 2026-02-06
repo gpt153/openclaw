@@ -352,6 +352,8 @@ export function renderApp(state: AppViewState) {
                 loading: state.cronLoading,
                 status: state.cronStatus,
                 jobs: state.cronJobs,
+                backendAutomations: state.backendAutomations,
+                backendAutomationsLoading: state.backendAutomationsLoading,
                 error: state.cronError,
                 busy: state.cronBusy,
                 form: state.cronForm,
@@ -369,6 +371,7 @@ export function renderApp(state: AppViewState) {
                 onRun: (job) => runCronJob(state, job),
                 onRemove: (job) => removeCronJob(state, job),
                 onLoadRuns: (jobId) => loadCronRuns(state, jobId),
+                onRefreshBackend: () => loadBackendAutomations(state),
               })
             : nothing
         }

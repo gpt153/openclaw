@@ -1,5 +1,5 @@
 import { html, nothing } from "lit";
-import type { ChannelUiMetaEntry, CronJob, CronRunLogEntry, CronStatus } from "../types";
+import type { ChannelUiMetaEntry, CronJob, CronRunLogEntry, CronStatus, BackendAutomation } from "../types";
 import type { CronFormState } from "../ui-types";
 import { formatMs } from "../format";
 import {
@@ -13,6 +13,8 @@ export type CronProps = {
   loading: boolean;
   status: CronStatus | null;
   jobs: CronJob[];
+  backendAutomations: BackendAutomation[];
+  backendAutomationsLoading: boolean;
   error: string | null;
   busy: boolean;
   form: CronFormState;
@@ -28,6 +30,7 @@ export type CronProps = {
   onRun: (job: CronJob) => void;
   onRemove: (job: CronJob) => void;
   onLoadRuns: (jobId: string) => void;
+  onRefreshBackend: () => void;
 };
 
 function buildChannelOptions(props: CronProps): string[] {
@@ -293,6 +296,27 @@ export function renderCron(props: CronProps) {
     </section>
 
     <section class="card" style="margin-top: 18px;">
+      <div class="card-title">Backend Automations</div>
+      <div class="card-sub">Background tasks running on the Odin backend (Celery Beat).</div>
+      <div class="row" style="margin-top: 12px;">
+        <button class="btn" ?disabled=${props.backendAutomationsLoading} @click=${props.onRefreshBackend}>
+          ${props.backendAutomationsLoading ? "Refreshing…" : "Refresh"}
+        </button>
+      </div>
+      ${
+        props.backendAutomations.length === 0
+          ? html`
+              <div class="muted" style="margin-top: 12px">No backend automations found.</div>
+            `
+          : html`
+            <div class="list" style="margin-top: 12px;">
+              ${props.backendAutomations.map((automation) => renderBackendAutomation(automation))}
+            </div>
+          `
+      }
+    </section>
+
+    <section class="card" style="margin-top: 18px;">
       <div class="card-title">Run history</div>
       <div class="card-sub">Latest runs for ${props.runsJobId ?? "(select a job)"}.</div>
       ${
@@ -443,6 +467,25 @@ function renderJob(job: CronJob, props: CronProps) {
             Remove
           </button>
         </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderBackendAutomation(automation: BackendAutomation) {
+  return html`
+    <div class="list-item">
+      <div class="list-main">
+        <div class="list-title">${automation.name}</div>
+        <div class="list-sub">${automation.schedule_description}</div>
+        <div class="muted">Task: ${automation.task}</div>
+        <div class="chip-row" style="margin-top: 6px;">
+          <span class="chip">${automation.enabled ? "enabled" : "disabled"}</span>
+          <span class="chip">${automation.schedule_type}</span>
+        </div>
+      </div>
+      <div class="list-meta">
+        <div class="muted">Backend automation (read-only)</div>
       </div>
     </div>
   `;

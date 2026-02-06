@@ -9,6 +9,7 @@ import type { Tab } from "./navigation";
 import type { ResolvedTheme, ThemeMode } from "./theme";
 import type {
   AgentsListResult,
+  BackendAutomation,
   ConfigSnapshot,
   ConfigUiHints,
   CronJob,
@@ -212,6 +213,8 @@ export class OpenClawApp extends LitElement {
   @state() cronRunsJobId: string | null = null;
   @state() cronRuns: CronRunLogEntry[] = [];
   @state() cronBusy = false;
+  @state() backendAutomations: BackendAutomation[] = [];
+  @state() backendAutomationsLoading = false;
 
   @state() emailsLoading = false;
   @state() emails: Array<unknown> = [];
@@ -219,6 +222,14 @@ export class OpenClawApp extends LitElement {
   @state() emailError: string | null = null;
   @state() emailSearchQuery = "";
   @state() emailFilters: Record<string, string | undefined> = { limit: "50" };
+
+  @state() calendarLoading = false;
+  @state() calendarEvents: Array<unknown> = [];
+  @state() calendarConflicts: Array<unknown> = [];
+  @state() calendarView: "weekly" | "daily" = "weekly";
+  @state() calendarCurrentDate = new Date();
+  @state() calendarSelectedEvent: unknown = null;
+  @state() calendarError: string | null = null;
 
   @state() skillsLoading = false;
   @state() skillsReport: SkillStatusReport | null = null;
