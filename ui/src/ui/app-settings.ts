@@ -332,7 +332,8 @@ export function setTabFromRoute(host: SettingsHost, next: Tab) {
   } else {
     stopDebugPolling(host as unknown as Parameters<typeof stopDebugPolling>[0]);
   }
-  if (host.connected) {
+  // Always refresh School and Family tabs (they use HTTP API, not WebSocket)
+  if (host.connected || next === "school" || next === "family") {
     void refreshActiveTab(host);
   }
 }
