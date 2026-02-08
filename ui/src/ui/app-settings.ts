@@ -168,6 +168,7 @@ export function setTheme(host: SettingsHost, next: ThemeMode, context?: ThemeTra
 }
 
 export async function refreshActiveTab(host: SettingsHost) {
+  console.log('[refreshActiveTab] Called with tab:', host.tab);
   if (host.tab === "overview") {
     await loadOverview(host);
   }
@@ -203,7 +204,9 @@ export async function refreshActiveTab(host: SettingsHost) {
     await loadConfigSchema(host as unknown as OpenClawApp);
     await loadConfig(host as unknown as OpenClawApp);
   }
+  console.log('[refreshActiveTab] Checking school tab...');
   if (host.tab === "school") {
+    console.log('[refreshActiveTab] MATCHED school tab, calling loadChildrenWithSchoolData');
     await loadChildrenWithSchoolData(host as unknown as OpenClawApp);
   }
   if (host.tab === "debug") {
