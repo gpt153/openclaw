@@ -7,6 +7,7 @@ import {
   stopDebugPolling,
 } from "./app-polling";
 import { scheduleChatScroll, scheduleLogsScroll } from "./app-scroll";
+import { loadChildrenWithSchoolData } from "./app-render";
 import { loadChannels } from "./controllers/channels";
 import { loadConfig, loadConfigSchema } from "./controllers/config";
 import { loadBackendAutomations, loadCronJobs, loadCronStatus } from "./controllers/cron";
@@ -203,7 +204,6 @@ export async function refreshActiveTab(host: SettingsHost) {
     await loadConfig(host as unknown as OpenClawApp);
   }
   if (host.tab === "school") {
-    const { loadChildrenWithSchoolData } = await import('./app-render.js');
     await loadChildrenWithSchoolData(host as unknown as OpenClawApp);
   }
   if (host.tab === "debug") {
