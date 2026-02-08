@@ -29,9 +29,14 @@ export async function fetchChildrenWithSchoolData(
   baseUrl: string,
   userId: string
 ): Promise<Array<{ id: number; name: string; school_id: string | null; school_data_enabled: boolean }>> {
+  console.log('[School Controller] fetchChildrenWithSchoolData called');
+  console.log('[School Controller] baseUrl:', baseUrl);
+  console.log('[School Controller] userId:', userId);
   try {
+    const url = `${baseUrl}/api/v1/school/children-with-school-data`;
+    console.log('[School Controller] Fetching from:', url);
     const response = await fetch(
-      `${baseUrl}/api/v1/school/children-with-school-data`,
+      url,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -39,14 +44,16 @@ export async function fetchChildrenWithSchoolData(
       }
     );
 
+    console.log('[School Controller] Response status:', response.status);
     if (!response.ok) {
       throw new Error(`Failed to fetch children with school data: ${response.statusText}`);
     }
 
     const data = await response.json();
+    console.log('[School Controller] Received data:', data);
     return Array.isArray(data) ? data : [];
   } catch (err) {
-    console.error('Error fetching children with school data:', err);
+    console.error('[School Controller] Error fetching children with school data:', err);
     return [];
   }
 }

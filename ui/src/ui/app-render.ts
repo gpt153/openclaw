@@ -242,26 +242,32 @@ async function syncAllSchoolData(state: AppViewState) {
 }
 
 export async function loadChildrenWithSchoolData(state: AppViewState) {
+  console.log('[School] loadChildrenWithSchoolData started');
   state.familyLoading = true;
   state.familyError = null;
   try {
     const baseUrl = getOdinApiBaseUrl();
+    console.log('[School] baseUrl:', baseUrl);
     const { fetchChildrenWithSchoolData } = await import('./controllers/school');
+    console.log('[School] Calling fetchChildrenWithSchoolData...');
     const children = await fetchChildrenWithSchoolData(baseUrl, 'samuel@153.se');
+    console.log('[School] Fetched children:', children.length);
     state.familyChildren = children;
 
     // Auto-select first child if none selected
     if (!state.schoolSelectedChildId && children.length > 0) {
+      console.log('[School] Auto-selecting first child:', children[0].id);
       state.schoolSelectedChildId = children[0].id;
       await loadSchoolDataForChild(state, children[0].id);
     } else if (state.schoolSelectedChildId) {
       await loadSchoolDataForChild(state, state.schoolSelectedChildId);
     }
   } catch (err) {
-    console.error('Failed to load children with school data:', err);
+    console.error('[School] Failed to load children with school data:', err);
     state.familyChildren = [];
     state.familyError = String(err);
   } finally {
+    console.log('[School] Loading finished, familyLoading = false');
     state.familyLoading = false;
   }
 }
