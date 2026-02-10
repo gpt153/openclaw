@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Odin Control UI - Access Instructions</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: #0a0a0a;
+            color: #e0e0e0;
+        }
+        .container {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #4a9eff;
+            margin-top: 0;
+        }
+        h2 {
+            color: #6eb3ff;
+            margin-top: 30px;
+        }
+        .url-box {
+            background: #2a2a2a;
+            border: 2px solid #4a9eff;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+            word-break: break-all;
+        }
+        .url {
+            color: #4a9eff;
+            font-family: monospace;
+            font-size: 14px;
+            word-break: break-all;
+        }
+        .button {
+            display: inline-block;
+            background: #4a9eff;
+            color: #0a0a0a;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            margin: 10px 0;
+            cursor: pointer;
+            border: none;
+            font-size: 16px;
+        }
+        .button:hover {
+            background: #6eb3ff;
+        }
+        .warning {
+            background: #332200;
+            border-left: 4px solid #ff9900;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .success {
+            background: #003320;
+            border-left: 4px solid #00cc66;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .error {
+            background: #330000;
+            border-left: 4px solid #ff3333;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        code {
+            background: #2a2a2a;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            color: #4a9eff;
+        }
+        .steps {
+            counter-reset: step-counter;
+            list-style: none;
+            padding-left: 0;
+        }
+        .steps li {
+            counter-increment: step-counter;
+            margin-bottom: 20px;
+            padding-left: 40px;
+            position: relative;
+        }
+        .steps li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #4a9eff;
+            color: #0a0a0a;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Odin Control UI - Access Instructions</h1>
+
+        <div class="success">
+            <strong>✅ Gateway is running!</strong> Follow the instructions below to access the Odin Control UI.
+        </div>
+
+        <h2>Quick Access (Click Below)</h2>
+
+        <div class="url-box">
+            <p><strong>Tokenized Access URL:</strong></p>
+            <p class="url" id="tokenUrl">https://odin.153.se/?token=97f7c2e8dd9e9524629445383662506a067949a71dfad0d95edbcbbc2834f587</p>
+        </div>
+
+        <a href="https://odin.153.se/?token=97f7c2e8dd9e9524629445383662506a067949a71dfad0d95edbcbbc2834f587"
+           class="button"
+           target="_blank">
+            🚀 Open Odin Control UI
+        </a>
+
+        <button class="button" onclick="copyUrl()" id="copyBtn">
+            📋 Copy URL to Clipboard
+        </button>
+
+        <div class="error" style="margin-top: 30px;">
+            <strong>⚠️ Important:</strong> You MUST use the URL above with the <code>?token=</code> parameter.
+            If you visit <code>https://odin.153.se</code> without the token, you will get a
+            "device identity required (1008)" error.
+        </div>
+
+        <h2>Why Do I Need the Token?</h2>
+
+        <p>The Odin Control UI requires authentication to ensure secure access. The token in the URL:</p>
+        <ul>
+            <li>Authenticates your browser session with the OpenClaw gateway</li>
+            <li>Allows the WebSocket connection to establish</li>
+            <li>Enables real-time communication with the Odin system</li>
+        </ul>
+
+        <h2>Alternative Method: Manual Setup</h2>
+
+        <p>If you don't want to use the token in the URL (it will be saved in your browser history),
+           you can set it manually:</p>
+
+        <ol class="steps">
+            <li>Open <code>https://odin.153.se</code> (you'll see an error - that's normal)</li>
+            <li>Press <strong>F12</strong> to open Developer Tools</li>
+            <li>Go to the <strong>Console</strong> tab</li>
+            <li>Paste this command and press Enter:
+                <div class="url-box">
+                    <code>localStorage.setItem('openclaw-gateway-token', '97f7c2e8dd9e9524629445383662506a067949a71dfad0d95edbcbbc2834f587');</code>
+                </div>
+            </li>
+            <li>Reload the page (<strong>F5</strong>)</li>
+            <li>The UI should now connect successfully ✅</li>
+        </ol>
+
+        <h2>Troubleshooting</h2>
+
+        <h3>❌ Still seeing "device identity required" error?</h3>
+        <ul>
+            <li>Make sure you're using the full URL with <code>?token=</code> parameter</li>
+            <li>Clear your browser cache and cookies for odin.153.se</li>
+            <li>Try opening in an incognito/private window</li>
+            <li>Check browser console (F12) for JavaScript errors</li>
+        </ul>
+
+        <h3>❌ Connection timeout or gateway offline?</h3>
+        <p>Contact the system administrator to check if the gateway is running.</p>
+
+        <div class="warning" style="margin-top: 30px;">
+            <strong>🔐 Security Note:</strong> This token is for development use only.
+            In production, use strong randomly-generated tokens and enable device identity authentication.
+        </div>
+
+        <hr style="margin: 40px 0; border: 1px solid #333;">
+
+        <h2>System Status</h2>
+        <ul>
+            <li><strong>Gateway:</strong> Running (PID 150416)</li>
+            <li><strong>Port:</strong> 18789</li>
+            <li><strong>Public URL:</strong> https://odin.153.se</li>
+            <li><strong>Backend:</strong> Odin Orchestrator (Port 5105)</li>
+            <li><strong>Authentication:</strong> Token-based (device auth disabled)</li>
+        </ul>
+    </div>
+
+    <script>
+        function copyUrl() {
+            const url = document.getElementById('tokenUrl').textContent;
+            navigator.clipboard.writeText(url).then(() => {
+                const btn = document.getElementById('copyBtn');
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                alert('Failed to copy: ' + err);
+            });
+        }
+    </script>
+</body>
+</html>

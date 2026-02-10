@@ -11,7 +11,7 @@ gateway:
 
   # Token authentication
   auth:
-    token: "odin-secure-token-2026"
+    token: "97f7c2e8dd9e9524629445383662506a067949a71dfad0d95edbcbbc2834f587"
 
   # Trust Cloudflare proxy headers
   trustedProxies:
